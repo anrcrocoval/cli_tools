@@ -23,20 +23,26 @@ public class Main implements Runnable {
     private TestFiducialSetFactory testFiducialSetFactory;
     private AffineTransformationComputer affineTransformationComputer;
 
-    @Inject
-    public void setTestTransformationFactory(TestTransformationFactory testTransformationFactory) {
-        this.testTransformationFactory = testTransformationFactory;
-    }
+    @CommandLine.Option(
+        names = { "-n" },
+        description = "Number of iterations, default : ${DEFAULT-VALUE}",
+        defaultValue = "100"
+    )
+    private int n;
 
-    @Inject
-    public void setTestFiducialSetFactory(TestFiducialSetFactory testFiducialSetFactory) {
-        this.testFiducialSetFactory = testFiducialSetFactory;
-    }
+    @CommandLine.Option(
+        names = { "-p" },
+        description = "Number of points, default : ${DEFAULT-VALUE}",
+        defaultValue = "50"
+    )
+    private int iter;
 
-    @Inject
-    public void setAffineTransformationComputer(AffineTransformationComputer affineTransformationComputer) {
-        this.affineTransformationComputer = affineTransformationComputer;
-    }
+    @CommandLine.Option(
+        names = {"-h", "--help"},
+        usageHelp = true,
+        description = "display this help message"
+    )
+    private boolean usageHelpRequested;
 
     public Main() {
         DaggerMainComponent.create().inject(this);
@@ -45,8 +51,6 @@ public class Main implements Runnable {
     @Override
     public void run() {
         double angle = 38;
-        int n = 100;
-        int iter = 50;
         Similarity simpleRotationTransformation = testTransformationFactory.getSimpleRotationTransformation(angle);
         FiducialSet randomFromTransformationFiducialSet = testFiducialSetFactory.getGaussianAroundCenterOfGravityFromTransformation(
                 simpleRotationTransformation, n * n + 1
@@ -124,5 +128,20 @@ public class Main implements Runnable {
     public static void main(String ... args){
         int exitCode = new CommandLine(new Main()).execute(args);
         assert exitCode == 0;
+    }
+
+    @Inject
+    public void setTestTransformationFactory(TestTransformationFactory testTransformationFactory) {
+        this.testTransformationFactory = testTransformationFactory;
+    }
+
+    @Inject
+    public void setTestFiducialSetFactory(TestFiducialSetFactory testFiducialSetFactory) {
+        this.testFiducialSetFactory = testFiducialSetFactory;
+    }
+
+    @Inject
+    public void setAffineTransformationComputer(AffineTransformationComputer affineTransformationComputer) {
+        this.affineTransformationComputer = affineTransformationComputer;
     }
 }
