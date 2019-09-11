@@ -58,7 +58,7 @@ public class Main implements Runnable {
         double angle = 38;
         Similarity simpleRotationTransformation = testTransformationFactory.getSimpleRotationTransformation(angle);
         FiducialSet randomFromTransformationFiducialSet = testFiducialSetFactory.getRandomFromTransformation(
-                simpleRotationTransformation, n * n + 1
+            simpleRotationTransformation, n * n + 1
         );
         Matrix error = new Matrix(p * n, 6);
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -77,7 +77,7 @@ public class Main implements Runnable {
                     for(int current = 0; current < nbIter; current++) {
                         FiducialSet currentFiducialSet = randomFromTransformationFiducialSet.clone();
                         testFiducialSetFactory.addGaussianNoise(
-                                currentFiducialSet.getTargetDataset(), (float) Math.sqrt(s)
+                            currentFiducialSet.getTargetDataset(), (float) Math.sqrt(s)
                         );
                         Point targetRemovedPoint = currentFiducialSet.getTargetDataset().removePoint(0);
                         Point sourceRemovedPoint = currentFiducialSet.getSourceDataset().removePoint(0);
