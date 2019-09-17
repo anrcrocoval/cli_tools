@@ -2,11 +2,13 @@ package fr.univ_nantes.stats.model_deviation;
 
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
+import Jama.SingularValueDecomposition;
 import fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
 import fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
 import org.apache.commons.math3.distribution.FDistribution;
 import picocli.CommandLine;
 import plugins.perrine.easyclemv0.fiducialset.FiducialSet;
+import plugins.perrine.easyclemv0.fiducialset.dataset.Dataset;
 import plugins.perrine.easyclemv0.fiducialset.dataset.point.Point;
 import plugins.perrine.easyclemv0.matrix.MatrixUtil;
 import plugins.perrine.easyclemv0.registration.AffineTransformationComputer;
@@ -69,16 +71,21 @@ public class Main implements Runnable {
         int width = range[0];
         int height = range[1];
         double angle = 38;
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = bufferedImage.createGraphics();
+        g2d.setColor(Color.GRAY);
+        g2d.fillRect(0, 0, width, height);
         Similarity simpleRotationTransformation = testTransformationFactory.getSimpleRotationTransformation(angle, range.length);
         FiducialSet randomFromTransformationFiducialSet = testFiducialSetFactory.getRandomFromTransformation(
             simpleRotationTransformation, n, range
         );
-        testFiducialSetFactory.addGaussianNoise(randomFromTransformationFiducialSet.getTargetDataset(), v);
+
         FDistribution fisher = new FDistribution(
             randomFromTransformationFiducialSet.getTargetDataset().getDimension(),
             n - randomFromTransformationFiducialSet.getTargetDataset().getDimension() - randomFromTransformationFiducialSet.getSourceDataset().getDimension()
         );
         Point z = testFiducialSetFactory.getRandomPoint(range);
+
         double rightHand = z.getMatrix().transpose().times(
             matrixUtil.pseudoInverse(
                 randomFromTransformationFiducialSet.getSourceDataset().getMatrix().transpose().times(
@@ -96,33 +103,27 @@ public class Main implements Runnable {
             ) * fisher.inverseCumulativeProbability(0.95)
         ).get(0, 0);
 
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = bufferedImage.createGraphics();
-        g2d.setColor(Color.GRAY);
-        g2d.fillRect(0, 0, width, height);
-
-        draw(
-            getShapeList(affineTransformationComputer, randomFromTransformationFiducialSet, z, rightHand, height),
-            g2d,
-            Color.BLUE
-        );
-
-        draw(
-            getShapeList(rigidTransformationComputer, randomFromTransformationFiducialSet, z, rightHand, height),
-            g2d,
-            Color.ORANGE
-        );
-
-        g2d.setColor(Color.RED);
-        for(int i = 0; i < randomFromTransformationFiducialSet.getN(); i++) {
-            Point p = randomFromTransformationFiducialSet.getTargetDataset().getPoint(i);
-            g2d.fillRect((int) p.get(0), (int) (height - p.get(1)), 5, 5);
-        }
-
         g2d.setColor(Color.GREEN);
         for(int i = 0; i < randomFromTransformationFiducialSet.getN(); i++) {
             Point p = randomFromTransformationFiducialSet.getSourceDataset().getPoint(i);
             g2d.fillRect((int) p.get(0), (int) (height - p.get(1)), 5, 5);
+        }
+
+        for(int i = 0; i < 1; i++) {
+            FiducialSet current = randomFromTransformationFiducialSet.clone();
+            testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), v);
+
+            draw(
+                getAffineShapeList(affineTransformationComputer, current, z, rightHand, height),
+                g2d,
+                Color.BLUE
+            );
+
+            draw(
+                getRigidShapeList(rigidTransformationComputer, current, z, height),
+                g2d,
+                Color.ORANGE
+            );
         }
 
         g2d.setColor(Color.WHITE);
@@ -137,10 +138,20 @@ public class Main implements Runnable {
         }
     }
 
-    private List<Shape> getShapeList(TransformationComputer transformationComputer, FiducialSet fiducialSet, Point z, double rightHand, int height) {
+    private List<Shape> getAffineShapeList(AffineTransformationComputer transformationComputer, FiducialSet fiducialSet, Point z, double rightHand, int height) {
         Transformation transformation = transformationComputer.compute(fiducialSet);
         List<Shape> shapeList = new ArrayList<>();
-        shapeList.add(getConfidenceEllipse(transformation, fiducialSet, z, rightHand, height));
+        Matrix covarianceEstimate = getAffineCovarianceMatrixEstimate(transformation, fiducialSet).times(rightHand);
+        shapeList.add(getConfidenceEllipse(transformation, z, covarianceEstimate, height));
+        shapeList.add(getEstimatedPoint(transformation, z, height));
+        return shapeList;
+    }
+
+    private List<Shape> getRigidShapeList(RigidTransformationComputer transformationComputer, FiducialSet fiducialSet, Point z, int height) {
+        Transformation transformation = transformationComputer.compute(fiducialSet);
+        List<Shape> shapeList = new ArrayList<>();
+        Matrix covarianceEstimate  = getRigidCovarianceMatrixEstimate(transformation, fiducialSet, z);
+        shapeList.add(getConfidenceEllipse(transformation, z, covarianceEstimate, height));
         shapeList.add(getEstimatedPoint(transformation, z, height));
         return shapeList;
     }
@@ -152,12 +163,11 @@ public class Main implements Runnable {
         }
     }
 
-    private Shape getConfidenceEllipse(Transformation transformation, FiducialSet fiducialSet, Point z, double rightHand, int height) {
-        Matrix covarianceEstimate = getCovarianceMatrixEstimate(transformation, fiducialSet);
-        EigenvalueDecomposition eigenvalueDecomposition = new EigenvalueDecomposition(covarianceEstimate.times(n));
+    private Shape getConfidenceEllipse(Transformation transformation, Point z, Matrix covarianceEstimate, int height) {
+        EigenvalueDecomposition eigenvalueDecomposition = new EigenvalueDecomposition(covarianceEstimate);
         double[] eigenValues = eigenvalueDecomposition.getRealEigenvalues();
-        double a = Math.sqrt(eigenValues[0] * rightHand);
-        double b = Math.sqrt(eigenValues[1] * rightHand);
+        double a = Math.sqrt(eigenValues[0]);
+        double b = Math.sqrt(eigenValues[1]);
         return AffineTransform.getTranslateInstance(transformation.apply(z).get(0), height - transformation.apply(z).get(1)).createTransformedShape(
             AffineTransform.getRotateInstance(-1 * Math.atan2(
                 eigenvalueDecomposition.getV().get(1, 0),
@@ -173,11 +183,55 @@ public class Main implements Runnable {
         return new Rectangle((int) apply.get(0), (int) (height - apply.get(1)), 1, 1);
     }
 
-    private Matrix getCovarianceMatrixEstimate(Transformation transformation, FiducialSet fiducialSet) {
+    private Matrix getAffineCovarianceMatrixEstimate(Transformation transformation, FiducialSet fiducialSet) {
         Matrix residuals = fiducialSet.getTargetDataset().getMatrix().minus(
             transformation.apply(fiducialSet.getSourceDataset()).getMatrix()
         );
         return residuals.transpose().times(residuals).times(1 / (double) (n - fiducialSet.getSourceDataset().getDimension() - 1));
+    }
+
+    private Matrix getRigidCovarianceMatrixEstimate(Transformation transformation, FiducialSet fiducialSet, Point z) {
+        Matrix residuals = fiducialSet.getTargetDataset().getMatrix().minus(
+            transformation.apply(fiducialSet.getSourceDataset()).getMatrix()
+        );
+        Matrix lambda = residuals.transpose().times(residuals).times(1 / (double) (n - fiducialSet.getSourceDataset().getDimension() - 1));
+        Matrix lambdaInv = matrixUtil.pseudoInverse(lambda);
+
+        Matrix jtt = lambdaInv.times(-1 * fiducialSet.getN());
+        Matrix jto = new Matrix(2, 1, 0);
+        Matrix joo = new Matrix(1, 1, 0);
+
+        for(int i = 0; i < fiducialSet.getN(); i++) {
+            Matrix x = new Matrix(new double[][]{
+                { fiducialSet.getSourceDataset().getMatrix().get(i, 1) },
+                { -1 * fiducialSet.getSourceDataset().getMatrix().get(i, 0) }
+            });
+            jto.plusEquals(lambdaInv.times(x));
+            joo.plusEquals(x.times(-1).transpose().times(lambdaInv).times(x));
+        }
+
+        Matrix J = new Matrix(3, 3);
+        J.setMatrix(0, 1, 0, 1, jtt.times(-1));
+        J.setMatrix(0, 1, 2, 2, jto.times(-1));
+        J.setMatrix(2, 2, 0, 1, jto.transpose().times(-1));
+        J.setMatrix(2, 2, 2, 2, joo.times(-1));
+
+        Matrix sigma = matrixUtil.pseudoInverse(J);
+
+        Matrix E = new Matrix(2,2);
+        E.set(0, 0,
+            z.get(1) * z.get(1) * sigma.get(2, 2) - 2 * z.get(1) * sigma.get(0, 2) + sigma.get(0, 0)
+        );
+        E.set(0, 1,
+            -1 * z.get(0) * z.get(1) * sigma.get(2, 2) - z.get(1) * sigma.get(1, 2) + z.get(0) * sigma.get(0, 2) + sigma.get(0, 1)
+        );
+        E.set(1, 0, E.get(0, 1) * -1);
+        E.set(1, 1,
+            z.get(0) * z.get(0) * sigma.get(2, 2) + 2 * z.get(0) * sigma.get(1, 2) + sigma.get(1, 1)
+        );
+        E.print(1,3);
+
+        return E;
     }
 
     public static void main(String ... args){
