@@ -54,6 +54,13 @@ public class Main implements Runnable {
     private int v;
 
     @CommandLine.Option(
+        names = { "-a" },
+        description = "Rotation angle. Default : ${DEFAULT-VALUE}.",
+        defaultValue = "38"
+    )
+    private int angle;
+
+    @CommandLine.Option(
         names = {"-h", "--help"},
         usageHelp = true,
         description = "Display this help message."
@@ -70,7 +77,6 @@ public class Main implements Runnable {
     public void run() {
         int width = range[0];
         int height = range[1];
-        double angle = 38;
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = bufferedImage.createGraphics();
         g2d.setColor(Color.GRAY);
@@ -86,22 +92,26 @@ public class Main implements Runnable {
         );
         Point z = testFiducialSetFactory.getRandomPoint(range);
 
-        double rightHand = z.getMatrix().transpose().times(
-            matrixUtil.pseudoInverse(
-                randomFromTransformationFiducialSet.getSourceDataset().getMatrix().transpose().times(
-                    randomFromTransformationFiducialSet.getSourceDataset().getMatrix()
+        double fishertermAffine = (float) (
+            randomFromTransformationFiducialSet.getTargetDataset().getDimension()
+                * (n - randomFromTransformationFiducialSet.getSourceDataset().getDimension() - 1)
+        ) / (
+            n
+                - randomFromTransformationFiducialSet.getSourceDataset().getDimension()
+                - randomFromTransformationFiducialSet.getTargetDataset().getDimension()
+        ) * fisher.inverseCumulativeProbability(0.95);
+
+        double rightHand = (
+            z.getMatrix().transpose().times(
+                matrixUtil.pseudoInverse(
+                    randomFromTransformationFiducialSet.getSourceDataset().getMatrix().transpose().times(
+                        randomFromTransformationFiducialSet.getSourceDataset().getMatrix()
+                    )
                 )
-            )
-        ).times(z.getMatrix()).times(
-            (float) (
-                randomFromTransformationFiducialSet.getTargetDataset().getDimension()
-                    * (n - randomFromTransformationFiducialSet.getSourceDataset().getDimension() - 1)
-            ) / (
-                n
-                    - randomFromTransformationFiducialSet.getSourceDataset().getDimension()
-                    - randomFromTransformationFiducialSet.getTargetDataset().getDimension()
-            ) * fisher.inverseCumulativeProbability(0.95)
-        ).get(0, 0);
+            ).times(z.getMatrix()).get(0, 0) + 1
+        ) * (
+            fishertermAffine
+        );
 
         g2d.setColor(Color.GREEN);
         for(int i = 0; i < randomFromTransformationFiducialSet.getN(); i++) {
@@ -120,7 +130,7 @@ public class Main implements Runnable {
             );
 
             draw(
-                getRigidShapeList(rigidTransformationComputer, current, z, height),
+                getRigidShapeList(rigidTransformationComputer, current, z, fishertermAffine, height),
                 g2d,
                 Color.ORANGE
             );
@@ -147,10 +157,10 @@ public class Main implements Runnable {
         return shapeList;
     }
 
-    private List<Shape> getRigidShapeList(RigidTransformationComputer transformationComputer, FiducialSet fiducialSet, Point z, int height) {
+    private List<Shape> getRigidShapeList(RigidTransformationComputer transformationComputer, FiducialSet fiducialSet, Point z, double fisherTerm, int height) {
         Transformation transformation = transformationComputer.compute(fiducialSet);
         List<Shape> shapeList = new ArrayList<>();
-        Matrix covarianceEstimate  = getRigidCovarianceMatrixEstimate(transformation, fiducialSet, z);
+        Matrix covarianceEstimate  = getRigidCovarianceMatrixEstimate(transformation, fiducialSet, z).times(fisherTerm);
         shapeList.add(getConfidenceEllipse(transformation, z, covarianceEstimate, height));
         shapeList.add(getEstimatedPoint(transformation, z, height));
         return shapeList;
@@ -194,7 +204,7 @@ public class Main implements Runnable {
         Matrix residuals = fiducialSet.getTargetDataset().getMatrix().minus(
             transformation.apply(fiducialSet.getSourceDataset()).getMatrix()
         );
-        Matrix lambda = residuals.transpose().times(residuals).times(1 / (double) (n - fiducialSet.getSourceDataset().getDimension() - 1));
+        Matrix lambda = residuals.transpose().times(residuals).times(1 / (double) n);
         Matrix lambdaInv = matrixUtil.pseudoInverse(lambda);
 
         Matrix jtt = lambdaInv.times(-1 * fiducialSet.getN());
@@ -231,7 +241,7 @@ public class Main implements Runnable {
         );
         E.print(1,3);
 
-        return E;
+        return E.plus(lambda);
     }
 
     public static void main(String ... args){
