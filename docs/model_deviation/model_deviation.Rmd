@@ -12,6 +12,11 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r}
 logExpr = '\\log\\left(P(Y|X, t, \\theta)\\right)'
+lambdaInvExpr = '\\Lambda_{i}^{-1}'
+minusExpr = '\\begin{bmatrix}y_{i}^{x} - x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta} - t_{x}\\\\ y_{i}^{y} - x_{i}^{x}\\sin{\\theta} - x_{i}^{y}\\cos{\\theta} - t_{y}\\end{bmatrix}'
+minusExpr.dtheta = '\\begin{bmatrix}x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta} \\\\ -x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta}\\end{bmatrix}'
+minusExpr.dtheta.transpose = '\\begin{bmatrix}x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta} & -x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta}\\end{bmatrix}'
+minusExpr.d2theta.transpose = '\\begin{bmatrix}x_{i}^{x}\\cos{\\theta} - x_{i}^{y}\\sin{\\theta} & -x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta}\\end{bmatrix}'
 ```
 
 # Ellipse de confiance
@@ -23,23 +28,17 @@ R est une matrice de rotation :
 
 $$R =  \begin{bmatrix}cos(\theta) & -sin(\theta)\\ sin(\theta) & cos(\theta)\end{bmatrix}$$
 
-Avec les développements en série de Taylor pour $\theta \approx 0$ nous avons :
+$$\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix} = `r minusExpr`$$
 
-$$cos(\theta) = 1 - \frac{\theta^{2}}{2} + \frac{\theta^{4}}{24} + O(\theta^{4})$$
-$$sin(\theta) = \theta - \frac{\theta^{3}}{6} + \frac{\theta^{5}}{120} + O(\theta^{5})$$
-$$R = \begin{bmatrix}1 & -\theta\\ \theta & 1\end{bmatrix} + O(\theta^{2})$$
+$$\frac{\partial `r logExpr`}{\partial t} = \sum_{i = 1}^{N}{`r lambdaInvExpr``r minusExpr`}$$
 
-$$\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix} \approx \begin{bmatrix}y_{i}^{x} - x_{i}^{x} + \theta x_{i}^{y} - t_{x}\\ y_{i}^{y} - \theta x_{i}^{x} - x_{i}^{y} - t_{y}\end{bmatrix}$$
+$$\frac{\partial `r logExpr`}{\partial \theta} = \sum_{i = 1}^{N}{`r minusExpr.dtheta.transpose``r lambdaInvExpr``r minusExpr`}$$
 
-$$\frac{\partial \log\left(P(Y|X, t, \theta)\right)}{\partial t} = \sum_{i = 1}^{N}{\Lambda_{i}^{-1}\begin{bmatrix}y_{i}^{x} - x_{i}^{x} + \theta x_{i}^{y} - t_{x}\\ y_{i}^{y} - \theta x_{i}^{x} - x_{i}^{y} - t_{y}\end{bmatrix}}$$
+$$\frac{\partial^{2} `r logExpr`}{\partial t^{2}} = J_{tt} = \sum_{i = 1}^{N}{-`r lambdaInvExpr`}$$
 
-$$\frac{\partial \log\left(P(Y|X, t, \theta)\right)}{\partial \theta} = \sum_{i = 1}^{N}{\begin{bmatrix}-x_{i}^{y} & x_{i}^{x}\end{bmatrix}\Lambda_{i}^{-1}\begin{bmatrix}y_{i}^{x} - x_{i}^{x} + \theta x_{i}^{y} - t_{x}\\ y_{i}^{y} - \theta x_{i}^{x} - x_{i}^{y} - t_{y}\end{bmatrix}}$$
+$$\frac{\partial^{2} `r logExpr`}{\partial t \partial \theta} = J_{t\theta} = J_{\theta t}^{T} = \sum_{i = 1}^{N}{`r lambdaInvExpr``r minusExpr.dtheta`}$$
 
-$$\frac{\partial^{2} \log\left(P(Y|X, t, \theta)\right)}{\partial t^{2}} = J_{tt} = \sum_{i = 1}^{N}{-\Lambda_{i}^{-1}}$$
-
-$$\frac{\partial^{2} \log\left(P(Y|X, t, \theta)\right)}{\partial t \partial \theta} = J_{t\theta} = J_{\theta t}^{T} = \sum_{i = 1}^{N}{\Lambda_{i}^{-1}\begin{bmatrix}x_{i}^{y} \\ -x_{i}^{x}\end{bmatrix}}$$
-
-$$\frac{\partial^{2} \log\left(P(Y|X, t, \theta)\right)}{\partial \theta^{2}} = J_{\theta\theta} = -\sum_{i = 1}^{N}{\begin{bmatrix}x_{i}^{y} & -x_{i}^{x}\end{bmatrix}\Lambda_{i}^{-1}\begin{bmatrix}x_{i}^{y} \\ -x_{i}^{x}\end{bmatrix}}$$
+$$\begin{aligned}\frac{\partial^{2} `r logExpr`}{\partial \theta^{2}} &= J_{\theta\theta} \\ &= \sum_{i = 1}^{N}{`r minusExpr.dtheta.transpose``r lambdaInvExpr``r minusExpr.dtheta`} \\ &+ \sum_{i = 1}^{N}{`r minusExpr.d2theta.transpose``r lambdaInvExpr``r minusExpr`}\end{aligned}$$
 
 L'inégalité de Cramer-Rao :
 
