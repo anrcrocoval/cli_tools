@@ -31,28 +31,38 @@ public class RigidCovarianceEstimator implements CovarianceEstimator {
         Matrix joo = new Matrix(1, 1, 0);
 
         RotationParameters2D rotationParameters2D = new RotationParameters2D((Similarity) transformation);
-        Matrix tmp = new Matrix(new double[][]{
-            { Math.sin(rotationParameters2D.getTheta()), Math.cos(rotationParameters2D.getTheta()) },
-            { -1 * Math.cos(rotationParameters2D.getTheta()), Math.sin(rotationParameters2D.getTheta()) }
-        });
-        Matrix tmp2 = new Matrix(new double[][]{
-            { Math.cos(rotationParameters2D.getTheta()), -1 * Math.sin(rotationParameters2D.getTheta()) },
-            { -1 * Math.sin(rotationParameters2D.getTheta()), Math.cos(rotationParameters2D.getTheta()) }
-        });
+//        Matrix tmp = new Matrix(new double[][]{
+//            { Math.sin(rotationParameters2D.getTheta()), Math.cos(rotationParameters2D.getTheta()) },
+//            { -1 * Math.cos(rotationParameters2D.getTheta()), Math.sin(rotationParameters2D.getTheta()) }
+//        });
+//        Matrix tmp2 = new Matrix(new double[][]{
+//            { Math.cos(rotationParameters2D.getTheta()), -1 * Math.sin(rotationParameters2D.getTheta()) },
+//            { -1 * Math.sin(rotationParameters2D.getTheta()), Math.cos(rotationParameters2D.getTheta()) }
+//        });
+//        for(int i = 0; i < fiducialSet.getN(); i++) {
+//            Matrix y = new Matrix(new double[][]{
+//                { fiducialSet.getTargetDataset().getMatrix().get(i, 1) },
+//                { fiducialSet.getTargetDataset().getMatrix().get(i, 0) }
+//            });
+//            Matrix x = new Matrix(new double[][]{
+//                { fiducialSet.getSourceDataset().getMatrix().get(i, 1) },
+//                { fiducialSet.getSourceDataset().getMatrix().get(i, 0) }
+//            });
+//            jto.plusEquals(lambdaInv.times(tmp.times(x)));
+//            joo.plusEquals(
+//                tmp.times(x).transpose().times(lambdaInv).times(tmp.times(x)).plus(
+//                    tmp2.times(x).transpose().times(lambdaInv).times(y.minus(transformation.apply(new Point(x)).getMatrix()))
+//                ));
+//        }
         for(int i = 0; i < fiducialSet.getN(); i++) {
-            Matrix y = new Matrix(new double[][]{
-                { fiducialSet.getTargetDataset().getMatrix().get(i, 1) },
-                { fiducialSet.getTargetDataset().getMatrix().get(i, 0) }
-            });
             Matrix x = new Matrix(new double[][]{
-                { fiducialSet.getSourceDataset().getMatrix().get(i, 1) },
-                { fiducialSet.getSourceDataset().getMatrix().get(i, 0) }
+                { fiducialSet.getSourceDataset().getPoint(i).get(1) },
+                { -fiducialSet.getSourceDataset().getPoint(i).get(0) }
             });
-            jto.plusEquals(lambdaInv.times(tmp.times(x)));
+            jto.plusEquals(lambdaInv.times(x));
             joo.plusEquals(
-                tmp.times(x).transpose().times(lambdaInv).times(tmp.times(x)).plus(
-                    tmp2.times(x).transpose().times(lambdaInv).times(y.minus(transformation.apply(new Point(x)).getMatrix()))
-                ));
+                x.transpose().times(lambdaInv).times(x).times(-1)
+            );
         }
 
         Matrix J = new Matrix(3, 3);
