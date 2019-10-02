@@ -1,0 +1,177 @@
+---
+title: "ANR Report - Registration error estimation framework"
+author:
+  - Guillaume POTIER
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document:
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+geometry: "left=1.5cm,right=1.5cm,top=3cm,bottom=3cm"
+classoption: twocolumn
+---
+
+# Introduction
+Le problème de recalage entre deux images consiste à trouver une application permettant de déformer une image source pour la superposer au mieux sur une image cible. La transfomation ainsi trouvée n'est qu'une approximation de la déformation réelle. Par conséquent il existe une différence de position entre l'image source transformée et l'image cible. Cette différence de position est appelée erreur de recalage. Nous nous intéressons particulièrement à cette erreur de recalage et nous souhaitons pouvoir l'estimer dans le cas où les transformations appliquées suivent différents modèles d'hypothèses. Nous allons décrire dans une première partie comment estimer l'erreur de recalage dans le cas où le modèle de transformation est supposé rigide. Dans une seconde partie nous allons montrer comment le problème de recalage peut être assimilé à un problème de régression linéaire, puis comment utiliser les résultats connus sur la régression linéaire pour estimer l'erreur de recalage dans le cas où le modèle de transformatione est étendu au modèle affine. Enfin nous allons étudier grâce à plusieurs simulations la différence d'erreur induite par l'utilisation de modèle rigide où affine.
+
+# Modèle affine
+
+## Le modèle de régression linéaire multivariée
+Selon l'ouvrage *Applied multivariate statistical analysis sixth edition* nous formulons le modèle de regression linéaire multivarié suivant :
+
+Soit $m$ réponses $Y_1, Y_2, \dots, Y_m$ et un set de $r$ variables prédictrices $z_1, z_2, \dots, z_r$. Nous supposons que chaque réponse suit un modèle de régression linéaire de sorte que :
+
+$$
+\left\{
+\begin{array}{c}
+y_1 = \beta_{01} + \beta_{11}z_1 + \dots + \beta_{r1}z_r + \epsilon_{1}\\
+y_2 = \beta_{02} + \beta_{12}z_1 + \dots + \beta_{r2}z_r + \epsilon_{2}\\
+\vdots \\
+y_m = \beta_{0m} + \beta_{1m}z_1 + \dots + \beta_{rm}z_r + \epsilon_{m}\\
+\end{array}
+\right\}
+$$
+
+Le vecteur $y_i$ réponse pour la $i^{ième}$ observation peut être écrit sous la forme suivante :
+$$\begin{bmatrix}y_{i1}\\y_{i2}\\\vdots\\y_{im}\end{bmatrix} = \begin{bmatrix}\beta_{01}\\\beta_{02}\\\vdots\\\beta_{0m}\end{bmatrix} +
+\begin{bmatrix}
+\beta_{11} & \beta_{21} & \ldots & \beta_{r1}\\
+\beta_{12} & \beta_{22} & \ldots & \beta_{r2}\\
+\vdots & \vdots & \ddots & \vdots\\
+\beta_{1m} & \beta_{2m} & \ldots & \beta_{rm}
+\end{bmatrix}
+\times
+\begin{bmatrix}
+z_{i1}\\z_{i2}\\\vdots\\z_{ir}
+\end{bmatrix}
++
+\begin{bmatrix}
+\epsilon_{i1}\\\epsilon_{i2}\\\vdots\\\epsilon_{im}
+\end{bmatrix}
+$$
+
+En notation matricielle pour $n$ observations composées de $m$ variables nous avons :
+
+$$\underset{(n \times m)}{\text{Y}} = \underset{(n \times (r + 1))}{\text{Z}} \times \underset{((r + 1) \times m)}{\text{$\beta$}} + \underset{(n \times m)}{\text{$\epsilon$}}$$
+
+$$\begin{aligned}\underset{(n \times m)}{\text{Y}} &= \begin{bmatrix} Y_{11} & Y_{12} & \ldots & Y_{1m}\\ Y_{21} & Y_{22} & \ldots & Y_{2m}\\ \vdots & \vdots & \ddots & \vdots\\ Y_{n1} & Y_{n2} & \ldots & Y_{nm}\\ \end{bmatrix} \\
+\underset{(n \times (r + 1))}{\text{Z}} &= \begin{bmatrix} 1 & z_{11} & \ldots & z_{1r}\\ 1 & z_{21} & \ldots & z_{2r}\\ \vdots & \vdots & \ddots & \vdots\\ 1 & z_{n1} & \ldots & z_{nr}\\ \end{bmatrix} \\
+\underset{((r + 1) \times m)}{\text{$\beta$}} &= \begin{bmatrix} \beta_{01} & \beta_{02} & \ldots & \beta_{0m}\\ \beta_{11} & \beta_{12} & \ldots & \beta_{1m}\\ \vdots & \vdots & \ddots & \vdots\\ \beta_{r1} & \beta_{r2} & \ldots & \beta_{rm}\\ \end{bmatrix} \\
+\underset{(n \times m)}{\text{$\epsilon$}} &= \begin{bmatrix} \epsilon_{11} & \epsilon_{12} & \ldots & \epsilon_{1m}\\ \epsilon_{21} & \epsilon_{22} & \ldots & \epsilon_{2m}\\ \vdots & \vdots & \ddots & \vdots\\ \epsilon_{n1} & \epsilon_{n2} & \ldots & \epsilon_{nm}\\ \end{bmatrix}\end{aligned}$$
+
+## Application au problème de recalage
+Afin de pouvoir trouver la transformation liant nos deux images, il faut placer un nuage de points fiduciaires. Chaque point sur une image possède un homologue sur l'autre image. Ainsi nous pouvons construire deux tableaux contenant les coordonnées des points fiduciaires de chaque image, dans le même ordre. Soit $Z$ le tableau des points fiduciaires de l'image source et $Y$ celui de l'image cible. Nous ne considérons que le cas des transformations affines. Cela signifie que les transformations possibles liant les points fiduciaires de l'image source et de l'image cible sont composées de translation, rotation, mise à l'échelle et cisaillement. Ansi nous pouvons écrire en coordonnées homogènes :
+
+$$\underset{(n \times m)}{\text{Y}} = \underset{(n \times (r + 1))}{\text{Z}} \times \underset{((r + 1) \times m)}{\text{$\beta$}} + \underset{(n \times m)}{\text{$\epsilon$}}$$
+
+Le terme $\epsilon$ correspond à l'erreur de déplacement résiduel après l'application de la transformation puisque nous ne pouvons qu'approcher la solution. Trouver la solution de cette équation dans le cadre des transformations affines revient à résoudre un problème de régression linéaire multivariée.
+
+## Estimation de l'erreur de recalage
+Grâce au modèle de régression linéaire nous avons pour tout $j \in [1 \hdots m]$, $E(\epsilon_{j}) = 0$ et $Var(\epsilon_{j}) = \sigma^{2}_{j}$ iconnu. $\epsilon$ admet une matrice de covariance $\Sigma$ :
+
+$$ \underset{(m \times m)}{\text{$\Sigma$}} = \begin{bmatrix} \sigma^{2}_{1} & \sigma_{1}\sigma_{2} & \ldots & \sigma_{1}\sigma_{m}\\ \sigma_{2}\sigma_{1} & \sigma^{2}_{2} & \ldots & \sigma_{2}\sigma_{m}\\ \vdots & \vdots & \ddots & \vdots\\ \sigma_{m}\sigma_{1} & \sigma_{m}\sigma_{2} & \ldots & \sigma^{2}_{m}\\ \end{bmatrix} $$
+
+Soit $\hat{\beta} = (Z^{'}Z)^{-1}Z^{'}Y$ l'estimateur de $\beta$ par la méthode des moindres carrés. $\hat{\beta}$ est le meilleur estimateur sans biais de $\beta$. Soit $\hat{\epsilon} = Y - Z\hat{\beta}$ l'estimation de l'erreur résiduelle $\epsilon$ après application de la transformation approchée $\hat{\beta}$. Soit $\hat{\Sigma} = \frac{\hat{\epsilon}^{'}\hat{\epsilon}}{n}$ une estimation de $\Sigma$. Une fois que nous avons ajusté notre modèle de régression, nous pouvons prédire les nouvelles positions pour tous les points de l'image source. Nous souhaitons également estimer l'erreur de prédiction associée à chaque nouveau point. Soit $Y_{0}$ l'image d'un nouveau point $z_{0}$, alors suivant le modèle de régression $Y_{0} = \beta^{'}z_{0} + \epsilon_{0}$. $\epsilon_{0}$ est indépendant de $\epsilon$. L'erreur de prédiction associée est $Y_{0} - \hat{\beta}^{'}z_{0} = (\beta - \hat{\beta})^{'}z_{0} + \epsilon_{0}$. $Y_{0} - \hat{\beta}^{'}z_{0}$ est distribué suivant $\mathcal{N}_{m}(0, (1 + z^{'}_{0}(Z^{'}Z)^{-1}z_{0})\Sigma )$. L'ellipse de prédiction au seuil $\alpha$ pour $Y_{0}$ est donnée par :
+
+$$\begin{gathered}(Y_{0} - \hat{\beta}^{'}z_{0})^{'}\left(\frac{n}{n - r - 1}\hat{\Sigma}\right)^{-1}(Y_{0} - \hat{\beta}^{'}z_{0}) \\ \leq \\ (1 + z^{'}_{0}(Z^{'}Z)^{-1}z_{0})\left(\frac{m(n - r - 1)}{n - r -m}\right)F_{m, n - r -m}(\alpha)\end{gathered}$$
+
+# Modèle rigide
+Sous l'hypothèse du modèle rigide nous supposons que la transformation recherchée est composée d'une rotation et d'une translation. Le problème de recalage dans ce cas est aussi connu comme le problème de Procrustes orthogonal. La solution est donnée par décomposition en valeur singulières (*Schönemann*). Un minorant de la matrice de covariance de l'estimateur est donné par l'inégalité de Cramer-Rao (*Moghari*) :
+
+$$\Sigma_{\beta} = \begin{bmatrix}\Sigma_{tt} & \Sigma_{t \theta} \\ \Sigma_{\theta t} & \Sigma_{\theta \theta}\end{bmatrix} \geq \begin{bmatrix}-J_{tt} & -J_{t \theta} \\ -J_{\theta t} & -J_{\theta \theta}\end{bmatrix}^{-1} = J^{-1}$$
+
+$$\begin{aligned}J_{tt} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial t^{2}} \\ J_{t \theta} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial t \partial \theta} \\ J_{tt} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial \theta^{2}}\end{aligned}$$
+
+$$\begin{gathered}\log(P(Y|X,t,\theta)) \\ = \\ \sum_{i = 1}^{N}{\log\left(\frac{1}{\sqrt{2\pi|\Sigma_{i}|}}\right)} - \sum_{i = 1}^{N}{\frac{\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}^{T}\Sigma_{i}^{-1}\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}}{2}}\end{gathered}$$
+
+Soit $e(z_{0})$ l'erreur de recalage au point $z_{0}$ :
+$$\begin{aligned}e(z_{0}) &= Rz_{0} + t + \epsilon_{0} - (\hat{R}z_{0} + \hat{t}) \\ &= (R - \hat{R})z_{0} + (t - \hat{t}) + \epsilon_{0} \\ &= \Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0}\end{aligned}$$
+
+$$\begin{aligned}\Sigma_{e} &= E(e(z_{0})e^{T}(z_{0}))) \\ &= E((\Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0})(\Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0})^{T}) \\ &= E(\Delta_{R}z_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{R}z_{0}\Delta_{t}^{T}) + E(\Delta_{R}z_{0}\epsilon_{0}^{T}) \\ &+ E(\Delta_{t}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{t}\Delta_{t}^{T}) + E(\Delta_{t}\epsilon_{0}^{T}) \\ &+ E(\epsilon_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\epsilon_{0}\Delta_{t}^{T}) + E(\epsilon_{0}\epsilon_{0}^{T})\end{aligned}$$
+
+Puisque $\epsilon_{0}$ et $\Delta_{R}$ sont indépendants nous avons $E(\Delta_{R}z_{0}\epsilon_{0}^{T}) = 0$ et $E(\epsilon_{0}z_{0}^{T}\Delta_{R}^{T}) = 0$. De même puisque $\epsilon_{0}$ et $\Delta_{t}$ sont indépendants nous avons $E(\Delta_{t}\epsilon_{0}^{T}) = 0$ et $E(\epsilon_{0}\Delta_{t}^{T}) = 0$.
+
+$$\begin{aligned}\Sigma_{e} &= E(\Delta_{R}z_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{R}z_{0}\Delta_{t}^{T}) \\ &+ E(\Delta_{t}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{t}\Delta_{t}^{T}) + \Sigma\end{aligned}$$
+
+En dimension 2 :
+$$R = \begin{bmatrix}cos(\theta) & -sin(\theta)\\ sin(\theta) & cos(\theta)\end{bmatrix} t = \begin{bmatrix}t_{x} \\ t_{y}\end{bmatrix}$$
+$$\begin{aligned}&J_{tt} = \sum_{i = 1}^{N}{-\Sigma_{i}^{-1}} \\ &J_{t\theta} = \sum_{i = 1}^{N}{\Sigma_{i}^{-1} \begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}} \\ &J_{\theta \theta} = \sum_{i = 1}^{N}{\begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}^{T} \Sigma_{i}^{-1} \begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}} \\ &+ \begin{bmatrix}x_{i}^{x}\cos{\theta} - x_{i}^{y}\sin{\theta} \\ -x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta}\end{bmatrix}^{T} \Sigma_{i}^{-1} \begin{bmatrix}y_{i}^{x} - x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta} - t_{x} \\ y_{i}^{y} - x_{i}^{x}\sin{\theta} - x_{i}^{y}\cos{\theta} - t_{y}\end{bmatrix}\end{aligned}$$
+$$\begin{aligned}cos(\theta) &= 1 - \frac{\theta^{2}}{2} + \frac{\theta^{4}}{24} + O(\theta^{4}) \\ sin(\theta) &= \theta - \frac{\theta^{3}}{6} + \frac{\theta^{5}}{120} + O(\theta^{5}) \\ R &\approx \begin{bmatrix}1 & -\theta \\ \theta & 1\end{bmatrix} \\ \Delta_{R} &\approx \begin{bmatrix}0 & (\hat{\theta} - \theta) \\ (\hat{\theta} - \theta) & 0\end{bmatrix}\end{aligned}$$
+
+$$\begin{aligned}E(\Delta Rzz^{T}\Delta R^{T}) &= \begin{bmatrix}E(z_{y}^{2}(\hat{\theta} - \theta)^{2}) & E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) \\ E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) & E(z_{x}^{2}(\hat{\theta} - \theta)^{2}) \end{bmatrix}\end{aligned}$$
+
+Puisque $\hat{\theta}$ est un estimateur sans biais nous avons $E(\hat{\theta}) = \theta$ et $E((\hat{\theta} - \theta)^{2}) = Var(\hat{\theta})$
+list groups i am in
+$$
+\begin{aligned}
+E(\Delta_{R}zz^{T}\Delta_{R}^{T}) &= \begin{bmatrix}z_{y}^{2}\Sigma_{\theta\theta}^{11} & -z_{x}z_{y}\Sigma_{\theta\theta}^{11} \\ -z_{x}z_{y}\Sigma_{\theta\theta}^{11} & z_{x}^{2}\Sigma_{\theta\theta}^{11}\end{bmatrix} \\
+E(\Delta_{R}z \Delta t^{T}) &= \begin{bmatrix}-z_{y}\Sigma_{t\theta}^{11} & -z_{y}\Sigma_{t\theta}^{21} \\ z_{x}\Sigma_{t\theta}^{11} & z_{x}\Sigma_{t\theta}^{21}\end{bmatrix}\\
+E(\Delta t z^{T}\Delta_{R}^{T}) &= E(\Delta_{R}z \Delta t^{T})^{T} \\
+E(\Delta t \Delta t^{T}) &= \begin{bmatrix}\Sigma_{tt}^{11} & \Sigma_{tt}^{12} \\ \Sigma_{tt}^{21} & \Sigma_{tt}^{22}\end{bmatrix}
+\end{aligned}
+$$
+
+# Simulations
+Nous avons effectué plusieurs simulations pour vérifier la validité et la précision de nos développements. Le protocole de simulation est le suivant :
+
++ Générer un set de points fiduciaires associés via une transformation connue $T$
++ Ajouter un bruit gaussien au set de fiduciaires cible
++ Selectionner un point $x_{0}$ aléatoirement dans l'espace source
++ Selectionner un point $y_{0}$ image de $x_{0}$ par $T$ avec un bruit gaussien
++ Dessiner l'ellipse de prédiction de $y_{0}$ à 95%
++ Exécuter le processus de recalage pour les modèles rigide et affine
++ Dessiner l'ellipse de prédiction en $x_{0}$ à 95% pour les modèles rigide et affine
+
+La simulation est répétée 1 000 000 de fois. Afin de vérifier la taille des ellipses, nous calculons le nombre de fois où le point $y_{0}$ est compris dans l'ellipse de prédiction ainsi que l'aire des ellipses. La matrice de covariance du bruit est :
+
+$$\Sigma = \begin{bmatrix}100 & 50 \\ 50 & 200\end{bmatrix}$$
+
+## Transformation rigide
+Dans cette simulation la transformation connue est une transformation rigide choisie aléatoirement.
+
+\begin{center}
+\begin{tabular}{| l | r | r | r |}
+\hline
+Modèle & \#n & \% $y_{0} \in ellipse_{95\%}$ & Aire $ellipse_{95\%}$ \\
+\hline
+Vrai & 10 & 95.004 & 3 339.197 \\
+Rigide & 10 & 95.053 & 5 696.962 \\
+Affine & 10 & 95.058 & 8 918.060 \\
+Vrai & 25 & 94.982 & 3 339.197 \\
+Rigide & 25 & 94.183 & 3 779.010 \\
+Affine & 25 & 94.994 & 4 415.793 \\
+Vrai & 100 & 94.982 & 3 339.197 \\
+Rigide & 100 & 94.717 & 3 413.270 \\
+Affine & 100 & 94.995 & 3 539.127 \\
+\hline
+\end{tabular}
+\end{center}
+
+Dans le cas où la vraie transformation est rigide, les ellipses trouvées contiennent le point $y_{0}$ environ 95% du temps. Cela semble cohérent puisque elles doivent correspondre à des ellipses de prédiction à 95%. Quand le nombre de points fiduciaires est petit le modèle rigide est plus précis que le modèle affine car aire de l'ellipse de prédiction correspondante est plus petite. Quand n devient grand les modèles rigide et affine tendent à se confondre et convergent vers le vrai modèle.
+
+## Transformation affine
+Dans cette simulation la transformation connue est une transformation affine choisie aléatoirement.
+
+\begin{center}
+\begin{tabular}{| l | r | r | r |}
+\hline
+Modèle & \#n & \% $y_{0} \in ellipse_{95\%}$ & Aire $ellipse_{95\%}$ \\
+\hline
+Vrai & 10 & 95.004 & 3 339.197 \\
+Rigide & 10 & 97.824 & 55 941.551 \\
+Affine & 10 & 95.152 & 8 915.317 \\
+Vrai & 25 & 95.005 & 3 339.197 \\
+Rigide & 25 & 97.792 & 35 719.012 \\
+Affine & 25 & 95.033 & 4 415.452 \\
+Vrai & 100 & 95.014 & 3 339.197 \\
+Rigide & 100 & 98.435 & 31 365.125 \\
+Affine & 100 & 95.004 & 3 539.246 \\
+\hline
+\end{tabular}
+\end{center}
+
+Dans le cas où la vraie transformation est affine mais non-rigide, le modèle affine donne de bons résultats mais le modèle rigide n'est plus valide. Pour le modèle rigide $y_{0}$ est inclu dans l'ellipse plus de 97% du temps et l'aire de l'ellipse est bien plus grande. Cela indique que la méthode utilisée pour estimer l'ellipse de prédiction n'est plus valide et que l'erreur de recalage associée est bien plus importante.
+
+# Conclusion
+Dans une première partie nous avons montré comment le problème de recalage peut être vu comme un problème de régression linéaire. Cela permet notamment de recaler des images dans le cas où la transformation recherchée est affine. Nous avons montré que les outils de la régression linéaire permettent d'estimer l'erreur de recalage. Par ailleurs nous avons montré une méthode décrite dans la littérature permettant d'estimer l'erreur de recalage dans le cadre spécifique de transformation rigide. Enfin nous montrons grâce à des simulations que le recalage par la régression linéaire est plus robuste que la méthode rigide dans le cas où la vraie transformation n'est effectivement pas rigide. Cela est important d'un point de vue pratique où le vrai modèle de transformation est incertain.
