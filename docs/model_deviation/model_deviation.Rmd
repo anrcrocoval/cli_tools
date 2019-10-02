@@ -1,0 +1,78 @@
+---
+title: "ANR Report - Target registration error distribution"
+author:
+  - Guillaume POTIER
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: pdf_document
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+logExpr = '\\log\\left(P(Y|X, t, \\theta)\\right)'
+lambdaInvExpr = '\\Lambda_{i}^{-1}'
+minusExpr = '\\begin{bmatrix}y_{i}^{x} - x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta} - t_{x}\\\\ y_{i}^{y} - x_{i}^{x}\\sin{\\theta} - x_{i}^{y}\\cos{\\theta} - t_{y}\\end{bmatrix}'
+minusExpr.dtheta = '\\begin{bmatrix}x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta} \\\\ -x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta}\\end{bmatrix}'
+minusExpr.dtheta.transpose = '\\begin{bmatrix}x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta} & -x_{i}^{x}\\cos{\\theta} + x_{i}^{y}\\sin{\\theta}\\end{bmatrix}'
+minusExpr.d2theta.transpose = '\\begin{bmatrix}x_{i}^{x}\\cos{\\theta} - x_{i}^{y}\\sin{\\theta} & -x_{i}^{x}\\sin{\\theta} + x_{i}^{y}\\cos{\\theta}\\end{bmatrix}'
+```
+
+# Ellipse de confiance
+Afin de pouvoir tracer l'ellipse de confiance sur une image, j'ai repris les développements de Moghari en dimension 2. Nous avions la log-vraisemblance :
+
+$$`r logExpr` = \sum_{i = 1}^{N}{\log\left(\frac{1}{\sqrt{2\pi|\Lambda_{i}|}}\right)} + \sum_{i = 1}^{N}{-\frac{\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}^{T}\Lambda_{i}^{-1}\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}}{2}}$$
+
+R est une matrice de rotation :
+
+$$R =  \begin{bmatrix}cos(\theta) & -sin(\theta)\\ sin(\theta) & cos(\theta)\end{bmatrix}$$
+
+$$\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix} = `r minusExpr`$$
+
+$$\frac{\partial `r logExpr`}{\partial t} = \sum_{i = 1}^{N}{`r lambdaInvExpr``r minusExpr`}$$
+
+$$\frac{\partial `r logExpr`}{\partial \theta} = \sum_{i = 1}^{N}{`r minusExpr.dtheta.transpose``r lambdaInvExpr``r minusExpr`}$$
+
+$$\frac{\partial^{2} `r logExpr`}{\partial t^{2}} = J_{tt} = \sum_{i = 1}^{N}{-`r lambdaInvExpr`}$$
+
+$$\frac{\partial^{2} `r logExpr`}{\partial t \partial \theta} = J_{t\theta} = J_{\theta t}^{T} = \sum_{i = 1}^{N}{`r lambdaInvExpr``r minusExpr.dtheta`}$$
+
+$$\begin{aligned}\frac{\partial^{2} `r logExpr`}{\partial \theta^{2}} &= J_{\theta\theta} \\ &= \sum_{i = 1}^{N}{`r minusExpr.dtheta.transpose``r lambdaInvExpr``r minusExpr.dtheta`} \\ &+ \sum_{i = 1}^{N}{`r minusExpr.d2theta.transpose``r lambdaInvExpr``r minusExpr`}\end{aligned}$$
+
+L'inégalité de Cramer-Rao :
+
+$$\Sigma = \begin{bmatrix}\Sigma_{tt} & \Sigma_{t\theta} \\ \Sigma_{\theta t} & \Sigma_{\theta\theta}\end{bmatrix} \geq J^{-1} = \begin{bmatrix}-J_{tt} & -J_{t\theta} \\ -J_{\theta t} & -J_{\theta\theta}\end{bmatrix}^{-1}$$
+
+soit $e(z) = Rz + t - (\hat{R}z + \hat{t})$ le vecteur erreur de recalage au point z.
+
+$$\begin{aligned}e(z) &= (R - \hat{R})z + (t - \hat{t}) \\ &= \Delta Rz + \Delta t\end{aligned}$$
+
+$$\begin{aligned}\Sigma_{e}(z) &= E(e(z)e^{T}(z)) \\ &= E((\Delta Rz + \Delta t)(\Delta Rz + \Delta t)^{T}) \\ &= E(\Delta Rzz^{T}\Delta R^{T}) + E(\Delta Rz \Delta t^{T}) + E(\Delta t z^{T}\Delta R^{T}) + E(\Delta t \Delta t^{T})\end{aligned}$$
+
+$$\Delta R = R - \hat{R} = \begin{bmatrix}0 & (\hat{\theta} - \theta) \\ (\theta - \hat{\theta}) & 0\end{bmatrix}$$
+
+$$\Delta t = t - \hat{t} = \begin{bmatrix}t_{x} - \hat{t_{x}} \\ t_{y} - \hat{t_{y}}\end{bmatrix}$$
+
+$$\begin{aligned}E(\Delta Rzz^{T}\Delta R^{T}) &= E\left(\begin{bmatrix}z_{y}^{2}(\hat{\theta} - \theta)^{2} & z_{x}z_{y}(\hat{\theta} - \theta)(\theta - \hat{\theta}) \\ z_{x}z_{y}(\hat{\theta} - \theta)(\theta - \hat{\theta}) & z_{x}^{2}(\theta - \hat{\theta})^{2}\end{bmatrix}\right) \\ &= \begin{bmatrix}E(z_{y}^{2}(\hat{\theta} - \theta)^{2}) & E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) \\ E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) & E(z_{x}^{2}(\hat{\theta} - \theta)^{2}) \end{bmatrix}\end{aligned}$$
+
+Puisque $\hat{\theta}$ est un estimateur sans biais nous avons $E(\hat{\theta}) = \theta$ et $E((\hat{\theta} - \theta)^{2}) = Var(\hat{\theta})$
+
+$$E(\Delta Rzz^{T}\Delta R^{T}) = \begin{bmatrix}z_{y}^{2}\Sigma_{\theta\theta}^{11} & -z_{x}z_{y}\Sigma_{\theta\theta}^{11} \\ -z_{x}z_{y}\Sigma_{\theta\theta}^{11} & z_{x}^{2}\Sigma_{\theta\theta}^{11}\end{bmatrix}$$
+
+$$E(\Delta Rz \Delta t^{T}) = \begin{bmatrix}-z_{y}\Sigma_{t\theta}^{11} & -z_{y}\Sigma_{t\theta}^{21} \\ z_{x}\Sigma_{t\theta}^{11} & z_{x}\Sigma_{t\theta}^{21}\end{bmatrix}$$
+
+$$E(\Delta t z^{T}\Delta R^{T}) = E(\Delta Rz \Delta t^{T})^{T}$$
+
+$$E(\Delta t \Delta t^{T}) = \begin{bmatrix}\Sigma_{tt}^{11} & \Sigma_{tt}^{12} \\ \Sigma_{tt}^{21} & \Sigma_{tt}^{22}\end{bmatrix}$$
+
+$$\Sigma_{e}(z) = \begin{bmatrix}z_{y}^{2}\Sigma_{\theta \theta}^{11} - 2z_{y}\Sigma_{t \theta}^{11} + \Sigma_{tt}^{11} & -z_{x}z_{y}\Sigma_{\theta\theta}^{11} -z_{y}\Sigma_{t\theta}^{21} + z_{x}\Sigma_{t\theta}^{11} + \Sigma_{tt}^{12} \\ -z_{x}z_{y}\Sigma_{\theta\theta}^{11} -z_{y}\Sigma_{t\theta}^{21} + z_{x}\Sigma_{t\theta}^{11} + \Sigma_{tt}^{12} & z_{x}^{2}\Sigma_{\theta\theta}^{11} + 2z_{x}\Sigma_{t\theta}^{21} + \Sigma_{tt}^{22}\end{bmatrix}$$
+
+Nous considérons que :
+$$e(z) \sim \mathcal{N}_{2}(0, \Sigma_{e}(z))$$
+
+Dans le cadre de la régression linéaire cela se traduit par :
+$$e(z) = -(z\hat{\beta} - z\beta)$$
+
+Donc
+$$z\hat{\beta} \sim \mathcal{N}_{2}(z\beta, \Sigma_{e}(z))$$
