@@ -13,14 +13,14 @@ classoption: twocolumn
 ---
 
 # Introduction
-Le problème de recalage entre deux images consiste à trouver une application permettant de déformer une image source pour la superposer au mieux sur une image cible. La transfomation ainsi trouvée n'est qu'une approximation de la déformation réelle. Par conséquent il existe une différence de position entre l'image source transformée et l'image cible. Cette différence de position est appelée erreur de recalage. Nous nous intéressons particulièrement à cette erreur de recalage et nous souhaitons pouvoir l'estimer dans le cas où les transformations appliquées suivent différents modèles d'hypothèses. Nous allons décrire dans une première partie comment estimer l'erreur de recalage dans le cas où le modèle de transformation est supposé rigide. Dans une seconde partie nous allons montrer comment le problème de recalage peut être assimilé à un problème de régression linéaire, puis comment utiliser les résultats connus sur la régression linéaire pour estimer l'erreur de recalage dans le cas où le modèle de transformatione est étendu au modèle affine. Enfin nous allons étudier grâce à plusieurs simulations la différence d'erreur induite par l'utilisation de modèle rigide où affine.
+Le problème de recalage entre deux images consiste à trouver une application permettant de déformer une image source pour la superposer au mieux sur une image cible. La transfomation ainsi trouvée n'est qu'une approximation de la déformation réelle. Par conséquent il existe une différence de position entre l'image source transformée et l'image cible. Cette différence de position est appelée erreur de recalage. Nous nous intéressons particulièrement à cette erreur de recalage et nous souhaitons pouvoir l'estimer dans le cas où les transformations appliquées suivent différents modèles d'hypothèses. Nous allons décrire dans une première partie comment estimer l'erreur de recalage dans le cas où le modèle de transformation est supposé rigide. Dans une seconde partie nous allons montrer comment le problème de recalage peut être assimilé à un problème de régression linéaire, puis comment utiliser les résultats connus sur la régression linéaire pour estimer l'erreur de recalage dans le cas où le modèle de transformation est étendu au modèle affine. Enfin nous allons étudier grâce à plusieurs simulations la différence d'erreur induite par l'utilisation de modèle rigide ou affine.
 
 # Modèle affine
 
 ## Le modèle de régression linéaire multivariée
 Selon l'ouvrage *Applied multivariate statistical analysis sixth edition* nous formulons le modèle de regression linéaire multivarié suivant :
 
-Soit $m$ réponses $Y_1, Y_2, \dots, Y_m$ et un set de $r$ variables prédictrices $z_1, z_2, \dots, z_r$. Nous supposons que chaque réponse suit un modèle de régression linéaire de sorte que :
+Soit $m$ réponses $y_1, y_2, \dots, y_m$ et un set de $r$ variables prédictrices $z_1, z_2, \dots, z_r$. Nous supposons que chaque réponse suit un modèle de régression linéaire de sorte que :
 
 $$
 \left\{
@@ -33,7 +33,7 @@ y_m = \beta_{0m} + \beta_{1m}z_1 + \dots + \beta_{rm}z_r + \epsilon_{m}\\
 \right\}
 $$
 
-Le vecteur $y_i$ réponse pour la $i^{ième}$ observation peut être écrit sous la forme suivante :
+Le vecteur réponse pour la $i^{ième}$ observation peut être écrit sous la forme suivante :
 $$\begin{bmatrix}y_{i1}\\y_{i2}\\\vdots\\y_{im}\end{bmatrix} = \begin{bmatrix}\beta_{01}\\\beta_{02}\\\vdots\\\beta_{0m}\end{bmatrix} +
 \begin{bmatrix}
 \beta_{11} & \beta_{21} & \ldots & \beta_{r1}\\
@@ -55,7 +55,7 @@ En notation matricielle pour $n$ observations composées de $m$ variables nous a
 
 $$\underset{(n \times m)}{\text{Y}} = \underset{(n \times (r + 1))}{\text{Z}} \times \underset{((r + 1) \times m)}{\text{$\beta$}} + \underset{(n \times m)}{\text{$\epsilon$}}$$
 
-$$\begin{aligned}\underset{(n \times m)}{\text{Y}} &= \begin{bmatrix} Y_{11} & Y_{12} & \ldots & Y_{1m}\\ Y_{21} & Y_{22} & \ldots & Y_{2m}\\ \vdots & \vdots & \ddots & \vdots\\ Y_{n1} & Y_{n2} & \ldots & Y_{nm}\\ \end{bmatrix} \\
+$$\begin{aligned}\underset{(n \times m)}{\text{Y}} &= \begin{bmatrix} y_{11} & y_{12} & \ldots & y_{1m}\\ y_{21} & y_{22} & \ldots & y_{2m}\\ \vdots & \vdots & \ddots & \vdots\\ y_{n1} & y_{n2} & \ldots & y_{nm}\\ \end{bmatrix} \\
 \underset{(n \times (r + 1))}{\text{Z}} &= \begin{bmatrix} 1 & z_{11} & \ldots & z_{1r}\\ 1 & z_{21} & \ldots & z_{2r}\\ \vdots & \vdots & \ddots & \vdots\\ 1 & z_{n1} & \ldots & z_{nr}\\ \end{bmatrix} \\
 \underset{((r + 1) \times m)}{\text{$\beta$}} &= \begin{bmatrix} \beta_{01} & \beta_{02} & \ldots & \beta_{0m}\\ \beta_{11} & \beta_{12} & \ldots & \beta_{1m}\\ \vdots & \vdots & \ddots & \vdots\\ \beta_{r1} & \beta_{r2} & \ldots & \beta_{rm}\\ \end{bmatrix} \\
 \underset{(n \times m)}{\text{$\epsilon$}} &= \begin{bmatrix} \epsilon_{11} & \epsilon_{12} & \ldots & \epsilon_{1m}\\ \epsilon_{21} & \epsilon_{22} & \ldots & \epsilon_{2m}\\ \vdots & \vdots & \ddots & \vdots\\ \epsilon_{n1} & \epsilon_{n2} & \ldots & \epsilon_{nm}\\ \end{bmatrix}\end{aligned}$$
@@ -65,52 +65,105 @@ Afin de pouvoir trouver la transformation liant nos deux images, il faut placer 
 
 $$\underset{(n \times m)}{\text{Y}} = \underset{(n \times (r + 1))}{\text{Z}} \times \underset{((r + 1) \times m)}{\text{$\beta$}} + \underset{(n \times m)}{\text{$\epsilon$}}$$
 
-Le terme $\epsilon$ correspond à l'erreur de déplacement résiduel après l'application de la transformation puisque nous ne pouvons qu'approcher la solution. Trouver la solution de cette équation dans le cadre des transformations affines revient à résoudre un problème de régression linéaire multivariée.
+$\beta$ est la matrice de la transformation à estimer et correspond à la matrice des coefficients de régression. Il s'agit d'une matrice de taille $(r + 1) \times m$ où $m$ est la dimension de l'image cible et $r$ la dimension de l'image source. La matrice $\epsilon$ correspond au déplacement après application de la transformation aussi appelé résidu. Nous considérons que les résidus sont indépendants et identiquement distribués suivant $\mathcal{N}_{m}(0, \Sigma)$. Il n'y a pas de contraintes particulières sur $\Sigma$. Cela signifie que nous nous plaçons dans le cas de bruit anisotropique et que la covariance du bruit suivant les différentes dimensions n'est pas forcément nulle. Trouver la meilleure solution de ce problème de recalage dans le cadre des transformations affines revient à résoudre un problème de régression linéaire multivariée.
 
 ## Estimation de l'erreur de recalage
-Grâce au modèle de régression linéaire nous avons pour tout $j \in [1 \hdots m]$, $E(\epsilon_{j}) = 0$ et $Var(\epsilon_{j}) = \sigma^{2}_{j}$ iconnu. $\epsilon$ admet une matrice de covariance $\Sigma$ :
+Soit $\hat{\beta} = (Z^{'}Z)^{-1}Z^{'}Y$ l'estimateur de $\beta$ par la méthode des moindres carrés. $\hat{\beta}$ est le meilleur estimateur linéaire sans biais de $\beta$. Soit $\hat{\epsilon} = Y - Z\hat{\beta}$ l'estimation de l'erreur résiduelle $\epsilon$ après application de la transformation approchée $\hat{\beta}$. Soit $\hat{\Sigma} = \frac{\hat{\epsilon}^{'}\hat{\epsilon}}{n}$ une estimation de $\Sigma$. $\hat{\beta}$ est l'estimation de $\beta$ qui minimise la trace de $\hat{\Sigma}$. Une fois que nous avons ajusté le modèle de régression, nous pouvons prédire les nouvelles positions pour tous les points de l'image source. Nous souhaitons également estimer l'erreur de prédiction associée à chaque nouveau point. Soit $y_{0}$ l'image d'un nouveau point $z_{0}$, alors suivant le modèle de régression $y_{0} = \beta^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix} + \epsilon_{0}$. $\epsilon_{0}$ est indépendant de $\epsilon$. L'erreur de prédiction associée est $y_{0} - \hat{\beta}^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix} = (\beta - \hat{\beta})^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix} + \epsilon_{0}$. $y_{0} - \hat{\beta}^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix}$ est distribué suivant $\mathcal{N}_{m}(0, (1 + \begin{bmatrix}1 \\ z_{0}\end{bmatrix}^{'}(Z^{'}Z)^{-1}\begin{bmatrix}1 \\ z_{0}\end{bmatrix})\Sigma )$. L'ellipse de prédiction au seuil $(1 - \alpha)$ pour $y_{0}$ est donnée par :
 
-$$ \underset{(m \times m)}{\text{$\Sigma$}} = \begin{bmatrix} \sigma^{2}_{1} & \sigma_{1}\sigma_{2} & \ldots & \sigma_{1}\sigma_{m}\\ \sigma_{2}\sigma_{1} & \sigma^{2}_{2} & \ldots & \sigma_{2}\sigma_{m}\\ \vdots & \vdots & \ddots & \vdots\\ \sigma_{m}\sigma_{1} & \sigma_{m}\sigma_{2} & \ldots & \sigma^{2}_{m}\\ \end{bmatrix} $$
+$$\begin{gathered}(Y_{0} - \hat{\beta}^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix})^{'}\left(\frac{n}{n - r - 1}\hat{\Sigma}\right)^{-1}(Y_{0} - \hat{\beta}^{'}\begin{bmatrix}1 \\ z_{0}\end{bmatrix}) \\ \leq \\ (1 + \begin{bmatrix}1 \\ z_{0}\end{bmatrix}^{'}(Z^{'}Z)^{-1}\begin{bmatrix}1 \\ z_{0}\end{bmatrix})\left(\frac{m(n - r - 1)}{n - r -m}\right)F_{m, n - r - m}(1 - \alpha)\end{gathered}$$
 
-Soit $\hat{\beta} = (Z^{'}Z)^{-1}Z^{'}Y$ l'estimateur de $\beta$ par la méthode des moindres carrés. $\hat{\beta}$ est le meilleur estimateur sans biais de $\beta$. Soit $\hat{\epsilon} = Y - Z\hat{\beta}$ l'estimation de l'erreur résiduelle $\epsilon$ après application de la transformation approchée $\hat{\beta}$. Soit $\hat{\Sigma} = \frac{\hat{\epsilon}^{'}\hat{\epsilon}}{n}$ une estimation de $\Sigma$. Une fois que nous avons ajusté notre modèle de régression, nous pouvons prédire les nouvelles positions pour tous les points de l'image source. Nous souhaitons également estimer l'erreur de prédiction associée à chaque nouveau point. Soit $Y_{0}$ l'image d'un nouveau point $z_{0}$, alors suivant le modèle de régression $Y_{0} = \beta^{'}z_{0} + \epsilon_{0}$. $\epsilon_{0}$ est indépendant de $\epsilon$. L'erreur de prédiction associée est $Y_{0} - \hat{\beta}^{'}z_{0} = (\beta - \hat{\beta})^{'}z_{0} + \epsilon_{0}$. $Y_{0} - \hat{\beta}^{'}z_{0}$ est distribué suivant $\mathcal{N}_{m}(0, (1 + z^{'}_{0}(Z^{'}Z)^{-1}z_{0})\Sigma )$. L'ellipse de prédiction au seuil $\alpha$ pour $Y_{0}$ est donnée par :
-
-$$\begin{gathered}(Y_{0} - \hat{\beta}^{'}z_{0})^{'}\left(\frac{n}{n - r - 1}\hat{\Sigma}\right)^{-1}(Y_{0} - \hat{\beta}^{'}z_{0}) \\ \leq \\ (1 + z^{'}_{0}(Z^{'}Z)^{-1}z_{0})\left(\frac{m(n - r - 1)}{n - r -m}\right)F_{m, n - r -m}(\alpha)\end{gathered}$$
+$F_{m, n - r -m}(1 - \alpha)$ correspond au $(1 - \alpha)^{ième}$ percentile d'une loi de Fisher de paramètres $m$ et $n - r - m$.
 
 # Modèle rigide
-Sous l'hypothèse du modèle rigide nous supposons que la transformation recherchée est composée d'une rotation et d'une translation. Le problème de recalage dans ce cas est aussi connu comme le problème de Procrustes orthogonal. La solution est donnée par décomposition en valeur singulières (*Schönemann*). Un minorant de la matrice de covariance de l'estimateur est donné par l'inégalité de Cramer-Rao (*Moghari*) :
-
-$$\Sigma_{\beta} = \begin{bmatrix}\Sigma_{tt} & \Sigma_{t \theta} \\ \Sigma_{\theta t} & \Sigma_{\theta \theta}\end{bmatrix} \geq \begin{bmatrix}-J_{tt} & -J_{t \theta} \\ -J_{\theta t} & -J_{\theta \theta}\end{bmatrix}^{-1} = J^{-1}$$
-
-$$\begin{aligned}J_{tt} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial t^{2}} \\ J_{t \theta} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial t \partial \theta} \\ J_{tt} &= \frac{\partial^{2} \log(P(Y|X,t,\theta))}{\partial \theta^{2}}\end{aligned}$$
-
-$$\begin{gathered}\log(P(Y|X,t,\theta)) \\ = \\ \sum_{i = 1}^{N}{\log\left(\frac{1}{\sqrt{2\pi|\Sigma_{i}|}}\right)} - \sum_{i = 1}^{N}{\frac{\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}^{T}\Sigma_{i}^{-1}\begin{bmatrix}y_{i} - Rx_{i} - t\end{bmatrix}}{2}}\end{gathered}$$
-
-Soit $e(z_{0})$ l'erreur de recalage au point $z_{0}$ :
-$$\begin{aligned}e(z_{0}) &= Rz_{0} + t + \epsilon_{0} - (\hat{R}z_{0} + \hat{t}) \\ &= (R - \hat{R})z_{0} + (t - \hat{t}) + \epsilon_{0} \\ &= \Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0}\end{aligned}$$
-
-$$\begin{aligned}\Sigma_{e} &= E(e(z_{0})e^{T}(z_{0}))) \\ &= E((\Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0})(\Delta_{R}z_{0} + \Delta_{t} + \epsilon_{0})^{T}) \\ &= E(\Delta_{R}z_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{R}z_{0}\Delta_{t}^{T}) + E(\Delta_{R}z_{0}\epsilon_{0}^{T}) \\ &+ E(\Delta_{t}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{t}\Delta_{t}^{T}) + E(\Delta_{t}\epsilon_{0}^{T}) \\ &+ E(\epsilon_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\epsilon_{0}\Delta_{t}^{T}) + E(\epsilon_{0}\epsilon_{0}^{T})\end{aligned}$$
-
-Puisque $\epsilon_{0}$ et $\Delta_{R}$ sont indépendants nous avons $E(\Delta_{R}z_{0}\epsilon_{0}^{T}) = 0$ et $E(\epsilon_{0}z_{0}^{T}\Delta_{R}^{T}) = 0$. De même puisque $\epsilon_{0}$ et $\Delta_{t}$ sont indépendants nous avons $E(\Delta_{t}\epsilon_{0}^{T}) = 0$ et $E(\epsilon_{0}\Delta_{t}^{T}) = 0$.
-
-$$\begin{aligned}\Sigma_{e} &= E(\Delta_{R}z_{0}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{R}z_{0}\Delta_{t}^{T}) \\ &+ E(\Delta_{t}z_{0}^{T}\Delta_{R}^{T}) + E(\Delta_{t}\Delta_{t}^{T}) + \Sigma\end{aligned}$$
-
-En dimension 2 :
-$$R = \begin{bmatrix}cos(\theta) & -sin(\theta)\\ sin(\theta) & cos(\theta)\end{bmatrix} t = \begin{bmatrix}t_{x} \\ t_{y}\end{bmatrix}$$
-$$\begin{aligned}&J_{tt} = \sum_{i = 1}^{N}{-\Sigma_{i}^{-1}} \\ &J_{t\theta} = \sum_{i = 1}^{N}{\Sigma_{i}^{-1} \begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}} \\ &J_{\theta \theta} = \sum_{i = 1}^{N}{\begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}^{T} \Sigma_{i}^{-1} \begin{bmatrix}x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta} \\ -x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta}\end{bmatrix}} \\ &+ \begin{bmatrix}x_{i}^{x}\cos{\theta} - x_{i}^{y}\sin{\theta} \\ -x_{i}^{x}\sin{\theta} + x_{i}^{y}\cos{\theta}\end{bmatrix}^{T} \Sigma_{i}^{-1} \begin{bmatrix}y_{i}^{x} - x_{i}^{x}\cos{\theta} + x_{i}^{y}\sin{\theta} - t_{x} \\ y_{i}^{y} - x_{i}^{x}\sin{\theta} - x_{i}^{y}\cos{\theta} - t_{y}\end{bmatrix}\end{aligned}$$
-$$\begin{aligned}cos(\theta) &= 1 - \frac{\theta^{2}}{2} + \frac{\theta^{4}}{24} + O(\theta^{4}) \\ sin(\theta) &= \theta - \frac{\theta^{3}}{6} + \frac{\theta^{5}}{120} + O(\theta^{5}) \\ R &\approx \begin{bmatrix}1 & -\theta \\ \theta & 1\end{bmatrix} \\ \Delta_{R} &\approx \begin{bmatrix}0 & (\hat{\theta} - \theta) \\ (\hat{\theta} - \theta) & 0\end{bmatrix}\end{aligned}$$
-
-$$\begin{aligned}E(\Delta Rzz^{T}\Delta R^{T}) &= \begin{bmatrix}E(z_{y}^{2}(\hat{\theta} - \theta)^{2}) & E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) \\ E(-z_{x}z_{y}(\hat{\theta} - \theta)^{2}) & E(z_{x}^{2}(\hat{\theta} - \theta)^{2}) \end{bmatrix}\end{aligned}$$
-
-Puisque $\hat{\theta}$ est un estimateur sans biais nous avons $E(\hat{\theta}) = \theta$ et $E((\hat{\theta} - \theta)^{2}) = Var(\hat{\theta})$
-list groups i am in
+Sous l'hypothèse du modèle rigide nous supposons que la transformation recherchée est composée d'une rotation $R_{\theta}$ et d'une translation $t$. Les conditions sur $\epsilon$ restent inchangées.
 $$
 \begin{aligned}
-E(\Delta_{R}zz^{T}\Delta_{R}^{T}) &= \begin{bmatrix}z_{y}^{2}\Sigma_{\theta\theta}^{11} & -z_{x}z_{y}\Sigma_{\theta\theta}^{11} \\ -z_{x}z_{y}\Sigma_{\theta\theta}^{11} & z_{x}^{2}\Sigma_{\theta\theta}^{11}\end{bmatrix} \\
-E(\Delta_{R}z \Delta t^{T}) &= \begin{bmatrix}-z_{y}\Sigma_{t\theta}^{11} & -z_{y}\Sigma_{t\theta}^{21} \\ z_{x}\Sigma_{t\theta}^{11} & z_{x}\Sigma_{t\theta}^{21}\end{bmatrix}\\
-E(\Delta t z^{T}\Delta_{R}^{T}) &= E(\Delta_{R}z \Delta t^{T})^{T} \\
-E(\Delta t \Delta t^{T}) &= \begin{bmatrix}\Sigma_{tt}^{11} & \Sigma_{tt}^{12} \\ \Sigma_{tt}^{21} & \Sigma_{tt}^{22}\end{bmatrix}
+Y &= Z\times \beta + \epsilon \\
+\beta &= \begin{bmatrix}t \\ R_{\theta}\end{bmatrix} \\
+\hat{\beta} &= \begin{bmatrix}\hat{t} \\ \hat{R_{\theta}}\end{bmatrix}
 \end{aligned}
 $$
+Soient $y_{i}$, $z_{i}$ et $\epsilon_{i}$ les $i^{ième}$ vecteurs ligne de $Y$, $Z$ et $\epsilon$ respectivement. Soit la fonction de vraisemblance :
+$$
+\begin{aligned}
+\mathcal{L}(Y, Z, \theta, t) &= P(Y | Z, \theta, t) \\
+&= \prod_{i = 1}^{n}{P(y_{i} | z_{i}, \theta, t)}
+\end{aligned}
+$$
+Puisque les $\epsilon_{i}$ sont identiquement distribués suivant $\mathcal{N}_{m}(0, \Sigma)$ :
+$$
+\begin{gathered}
+P(y_{i} | z_{i}, \theta, t) \\
+= \\
+\frac{1}{\sqrt{2\pi|\Sigma|}} \exp\left(-\frac{\begin{bmatrix}y_{i} - (R_{\theta} z_{i} + t)\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (R_{\theta} z_{i} + t)\end{bmatrix}}{2}\right)
+\end{gathered}
+$$
+Puisque le log est strictement croissant, maximiser la vraisemblance est équivalent à maximiser la log-vraisemblance :
+$$
+\begin{gathered}
+\log(\mathcal{L}(Y, Z, \theta, t)) \\ = \\ \sum_{i = 1}^{n}{\frac{1}{\sqrt{2\pi|\Sigma|}}} - \frac{1}{2}\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (R_{\theta} z_{i} + t)\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (R_{\theta} z_{i} + t)\end{bmatrix}}
+\end{gathered}
+$$
+
+Trouver $\hat{R_{\theta}}$ et $\hat{t}$ pour maximiser la log-vraisemblance est équivalent à minimiser $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ qui équivaut à minimiser $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ qui est équivalent à minimiser la trace de $\hat{\Sigma}$. Le problème de recalage dans ce cas est aussi connu comme le problème de Procrustes orthogonal. (*Schönemann, 1966*) propose une solution à ce problème dans le cas où la matrice $\hat{R_{\theta}}$ est orthogonale. Il peut s'agir d'une rotation ou d'une réflexion. (*Kabsch, 1978*) donne une solution similaire sous contrainte que $\hat{R_{\theta}}$ soit effectivement une rotation.
+
+Soit un point $z_{0}$ appartenant à l'image source. Soit $\Delta_{z_{0}}(\hat{\theta}, \hat{t})$ l'erreur de recalage au point $z_{0}$.
+$$\begin{aligned}
+\Delta_{z_{0}}(\hat{\theta}, \hat{t}) &= R_{\theta}z_{0} + t + \epsilon_{0} - (\hat{R_{\theta}}z_{0} + \hat{t}) \\
+&= e_{z_{0}}(\hat{\theta}, \hat{t}) + \epsilon_{0}
+\end{aligned}$$
+
+$\Delta_{z_{0}}(\hat{\theta}, \hat{t})$ admet une matrice de covariance $\Sigma_{\Delta{z_{0}}}$. Puisque $\epsilon_{0}$ est indépendant de $e_{z_{0}}$, nous avons $\Sigma_{\Delta{z_{0}}} = \Sigma_{e_{z_{0}}} + \Sigma$.
+
+En dimension 2 :
+$$
+\begin{aligned}
+y_{i} &= \begin{bmatrix}y_{ix} \\ y_{iy}\end{bmatrix} &
+z_{i} &= \begin{bmatrix}z_{ix} \\ z_{iy}\end{bmatrix} \\
+z_{0} &= \begin{bmatrix}z_{0x} \\ z_{0y}\end{bmatrix} &
+t &= \begin{bmatrix}t_{x} \\ t_{y}\end{bmatrix} \\
+R_{\theta} &= \begin{bmatrix}\cos{\theta} & -sin{\theta} \\ \sin{\theta} & \cos{\theta}\end{bmatrix} &
+e_{z_{0}}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) &= \begin{bmatrix}f_{1}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) \\ f_{2}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})\end{bmatrix}
+\end{aligned}
+$$
+Avec :
+$$
+\begin{aligned}
+f_{1}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) &= z_{0x}\cos \theta - z_{0y} \sin \theta + t_{x} \\ &- z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta} - \hat{t_{x}} \\ \\
+f_{2}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) &= z_{0x}\sin \theta + z_{0y} \cos \theta + t_{y} \\ &- z_{0x} \sin \hat{\theta} - z_{0y} \cos \hat{\theta} - \hat{t_{y}}
+\end{aligned}
+$$
+Soit $J_{e_{z_{0}}}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})$ la matrice Jacobienne de $e_{z_{0}}(\hat{\theta}, \hat{t})$ :
+$$\begin{aligned}
+J_{e_{z_{0}}}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) &= \begin{bmatrix}\frac{\partial f_{1}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{\theta}}} & \frac{\partial f_{1}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{t_{x}}}} & \frac{\partial f_{1}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{t_{y}}}} \\ \frac{\partial f_{2}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{\theta}}} & \frac{\partial f_{2}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{t_{x}}}} & \frac{\partial f_{2}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})}{\partial{\hat{t_{y}}}}\end{bmatrix} \\
+&= \begin{bmatrix}z_{0x} \sin \hat{\theta} + z_{0y} \cos \hat{\theta} & -1 & 0 \\ -z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta} & 0 & -1\end{bmatrix}
+\end{aligned}$$
+Selon la loi de propagation des incertitudes, $\Sigma_{e_{z_{0}}}$ est asymptotiquement égal à :
+$$\Sigma_{e_{z_{0}}} = J_{e_{z_{0}}} \Sigma_{\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}} J_{e_{z_{0}}}^{'}$$
+Où $\Sigma_{\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}}$ correspond à la matrice de covariance des paramètres $\hat{\theta}$, $\hat{t_{x}}$ et $\hat{t_{y}}$. Finallement nous avons :
+$$\Sigma_{e_{z_{0}}} = \begin{bmatrix}\Sigma_{e_{z_{0}}}^{11} & \Sigma_{e_{z_{0}}}^{12} \\ \Sigma_{e_{z_{0}}}^{21} & \Sigma_{e_{z_{0}}}^{22}\end{bmatrix}$$
+$$\begin{aligned}
+\Sigma_{e_{z_{0}}}^{11} &= cov(\hat{\theta}, \hat{\theta})(z_{0x} \sin \hat{\theta} + z_{0y} \cos \hat{\theta})^{2} \\ &- 2cov(\hat{\theta}, \hat{t_{x}})(z_{0x} \sin \hat{\theta} + z_{0y} \cos \hat{\theta}) \\ &+ cov(\hat{t_{x}}, \hat{t_{x}}) \\ \\
+\Sigma_{e_{z_{0}}}^{12} &= cov(\hat{\theta}, \hat{\theta})(z_{0x} \sin \hat{\theta} + z_{0y} \cos \hat{\theta})(-z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta}) \\ &- cov(\hat{\theta}, \hat{t_{x}})(-z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta}) \\ &- cov(\hat{\theta}, \hat{t_{y}})(z_{0x} \sin \hat{\theta} + z_{0y} \cos \hat{\theta}) \\ &+ cov(\hat{t_{x}}, \hat{t_{y}}) \\ \\
+\Sigma_{e_{z_{0}}}^{12} &= \Sigma_{e_{z_{0}}}^{21} \\ \\
+\Sigma_{e_{z_{0}}}^{22} &= cov(\hat{\theta}, \hat{\theta})(-z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta})^{2} \\ &- 2cov(\hat{\theta}, \hat{t_{y}})(-z_{0x} \cos \hat{\theta} + z_{0y} \sin \hat{\theta}) \\ &+ cov(\hat{t_{y}}, \hat{t_{y}})
+\end{aligned}$$
+Il reste à déterminer $\Sigma_{\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}}$. Selon l'inégalité de Cramer-Rao, nous avons asymptotiquement :
+$$
+\Sigma_{\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}} = \begin{bmatrix}\Sigma_{\hat{t}, \hat{t}} & \Sigma_{\hat{t}, \hat{\theta}} \\ \Sigma_{\hat{\theta}, \hat{t}} & \Sigma_{\hat{\theta}, \hat{\theta}}\end{bmatrix} \geq \begin{bmatrix}-\mathcal{H}_{t , t} & -\mathcal{H}_{t , \theta} \\ -\mathcal{H}_{\theta, t} & -\mathcal{H}_{\theta, \theta}\end{bmatrix}^{-1} = \mathcal{I}^{-1}
+$$
+Où $\mathcal{I}$ représente la matrice d'information de Fisher et $\mathcal{H}$ représente la matrice Hessienne de la log-vraisemblance.
+$$\begin{aligned}
+\mathcal{H}_{t, t} &= \frac{\partial^{2} \log(P(Y|Z,t,\theta))}{\partial t^{2}}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) \\
+\mathcal{H}_{t, \theta} &= \frac{\partial^{2} \log(P(Y|Z,t,\theta))}{\partial t \partial \theta}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}}) \\
+\mathcal{H}_{\theta, \theta} &= \frac{\partial^{2} \log(P(Y|Z,t,\theta))}{\partial \theta^{2}}(\hat{\theta}, \hat{t_{x}}, \hat{t_{y}})
+\end{aligned}$$
+$$\begin{aligned}
+&\mathcal{H}_{t, t} = \sum_{i = 1}^{N}{-\Sigma^{-1}} \\
+&\mathcal{H}_{t, \theta} = \sum_{i = 1}^{N}{\Sigma^{-1} \begin{bmatrix}z_{ix}\sin{\hat{\theta}} + z_{iy}\cos{\hat{\theta}} \\ -z_{ix}\cos{\hat{\theta}} + z_{iy}\sin{\hat{\theta}}\end{bmatrix}} \\
+&\mathcal{H}_{\theta, \theta} = \sum_{i = 1}^{N}{\begin{bmatrix}z_{ix}\sin{\hat{\theta}} + z_{iy}\cos{\hat{\theta}} \\ -z_{ix}\cos{\hat{\theta}} + z_{iy}\sin{\hat{\theta}}\end{bmatrix}^{'} \Sigma^{-1} \begin{bmatrix}z_{ix}\sin{\hat{\theta}} + z_{iy}\cos{\hat{\theta}} \\ -z_{ix}\cos{\hat{\theta}} + z_{iy}\sin{\hat{\theta}}\end{bmatrix}} \\ &+ \begin{bmatrix}z_{ix}\cos{\hat{\theta}} - z_{iy}\sin{\hat{\theta}} \\ -z_{ix}\sin{\hat{\theta}} + z_{iy}\cos{\hat{\theta}}\end{bmatrix}^{'} \Sigma^{-1} \begin{bmatrix}y_{ix} - z_{ix}\cos{\hat{\theta}} + z_{iy}\sin{\hat{\theta}} - \hat{t_{x}} \\ y_{iy} - z_{ix}\sin{\hat{\theta}} - z_{iy}\cos{\hat{\theta}} - \hat{t_{y}}\end{bmatrix}
+\end{aligned}$$
+$y_{i}$ et $z_{i}$ correspondent au $i^{ième}$ point fiduciaire de l'image cible et de l'image source respectivement.
 
 # Simulations
 Nous avons effectué plusieurs simulations pour vérifier la validité et la précision de nos développements. Le protocole de simulation est le suivant :
