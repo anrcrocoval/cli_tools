@@ -18,6 +18,9 @@ import java.awt.Color;
 import java.nio.file.Path;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.Rigid2DGeneralMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.Rigid2DIsotropicMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.transformation.Similarity;
 import plugins.perrine.easyclemv0.transformation.Transformation;
 import plugins.perrine.easyclemv0.transformation.schema.TransformationType;
 
@@ -32,6 +35,8 @@ public class Main {
     private TestFiducialSetFactory testFiducialSetFactory;
     private AffineTransformationComputer affineTransformationComputer;
     private RigidTransformationComputer rigidTransformationComputer;
+    private Rigid2DGeneralMaxLikelihoodComputer rigid2DGeneralMaxLikelihoodComputer;
+    private Rigid2DIsotropicMaxLikelihoodComputer rigid2DIsotropicMaxLikelihoodComputer;
 
     private AffineConfidenceEllipseFactory affineConfidenceEllipseFactory;
     private RigidConfidenceEllipseFactory rigidConfidenceEllipseFactory;
@@ -194,6 +199,29 @@ public class Main {
         System.out.println(String.format("True area : %.3f", trueArea / N));
     }
 
+    @Command
+    public void solver() {
+        int[] range = new int[]{width, height};
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
+        Similarity simpleRotationTransformation = testTransformationFactory.getRandomSimpleRotationTransformation(2);
+        System.out.println("True transformation");
+        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
+        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
+            simpleRotationTransformation, n, range
+        );
+        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
+        Similarity shonemann = rigidTransformationComputer.compute(current);
+        Similarity isotropicMaximumLikelihood = rigid2DIsotropicMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
+
+        System.out.println("Schonemann transformation");
+        shonemann.getHomogeneousMatrix().print(1,5);
+        System.out.println("General Maximum likelihood transformation");
+        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+        System.out.println("Isotropic Maximum likelihood transformation");
+        isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+    }
+
     public static void main(String ... args){
         new CommandLine(new Main()).execute(args);
     }
@@ -216,6 +244,16 @@ public class Main {
     @Inject
     public void setRigidTransformationComputer(RigidTransformationComputer rigidTransformationComputer) {
         this.rigidTransformationComputer = rigidTransformationComputer;
+    }
+
+    @Inject
+    public void setRigid2DGeneralMaxLikelihoodComputer(Rigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.rigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
+    }
+
+    @Inject
+    public void setRigid2DIsotropicMaxLikelihoodComputer(Rigid2DIsotropicMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.rigid2DIsotropicMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
     }
 
     @Inject
