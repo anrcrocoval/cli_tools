@@ -212,12 +212,12 @@ public class Main {
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
         Similarity shonemann = rigidTransformationComputer.compute(current);
         Similarity isotropicMaximumLikelihood = rigid2DIsotropicMaxLikelihoodComputer.compute(current);
-        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
+//        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
 
         System.out.println("Schonemann transformation");
         shonemann.getHomogeneousMatrix().print(1,5);
-        System.out.println("General Maximum likelihood transformation");
-        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+//        System.out.println("General Maximum likelihood transformation");
+//        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
         System.out.println("Isotropic Maximum likelihood transformation");
         isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
     }
