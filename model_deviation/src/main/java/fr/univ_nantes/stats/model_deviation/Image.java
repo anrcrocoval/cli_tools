@@ -33,6 +33,11 @@ public class Image {
         graphics2D.draw(shape);
     }
 
+    public void fill(Shape shape, Color color) {
+        graphics2D.setColor(color);
+        graphics2D.fill(shape);
+    }
+
     public void write(Path path) {
         graphics2D.dispose();
         try {

@@ -120,26 +120,26 @@ public class Main {
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
-        image.draw(image.center(getRectangle(zSource), zTargetWithoutNoise), Color.GREEN);
-        image.draw(image.center(getRectangle(zTarget), zTargetWithoutNoise), Color.RED);
+        image.fill(image.center(getRectangle(zSource), zTargetWithoutNoise), Color.GREEN);
+        image.fill(image.center(getRectangle(zTarget), zTargetWithoutNoise), Color.RED);
 
         Shape affineEllipse = affineConfidenceEllipseFactory.getFrom(zSource, current, alpha, height);
         image.draw(image.center(affineEllipse, zTargetWithoutNoise), Color.BLUE);
-        image.draw(image.center(getRectangle(affineTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.BLUE);
+        image.fill(image.center(getRectangle(affineTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.BLUE);
 
         Shape rigidEllipse = rigidConfidenceEllipseFactory.getFrom(zSource, current, alpha, height);
         image.draw(image.center(rigidEllipse, zTargetWithoutNoise), Color.ORANGE);
-        image.draw(image.center(getRectangle(rigidTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.ORANGE);
+        image.fill(image.center(getRectangle(rigidTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.ORANGE);
 
         Shape trueEllipse = trueModelConfidenceEllipseFactory.getFrom(zTargetWithoutNoise, current, alpha, height, noiseCovariance);
         image.draw(image.center(trueEllipse, zTargetWithoutNoise), Color.WHITE);
-        image.draw(image.center(getRectangle(zTargetWithoutNoise), zTargetWithoutNoise), Color.WHITE);
+        image.fill(image.center(getRectangle(zTargetWithoutNoise), zTargetWithoutNoise), Color.WHITE);
 
         image.write(outputFilePath);
     }
 
     private Rectangle getRectangle(Point point) {
-        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 1, 1);
+        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 5, 5);
     }
 
     @Command
@@ -204,20 +204,21 @@ public class Main {
         int[] range = new int[]{width, height};
         double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
         Similarity simpleRotationTransformation = testTransformationFactory.getRandomSimpleRotationTransformation(2);
-        System.out.println("True transformation");
-        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
+
         FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
             simpleRotationTransformation, n, range
         );
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
         Similarity shonemann = rigidTransformationComputer.compute(current);
         Similarity isotropicMaximumLikelihood = rigid2DIsotropicMaxLikelihoodComputer.compute(current);
-//        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
 
+        System.out.println("True transformation");
+        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
         System.out.println("Schonemann transformation");
         shonemann.getHomogeneousMatrix().print(1,5);
-//        System.out.println("General Maximum likelihood transformation");
-//        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+        System.out.println("General Maximum likelihood transformation");
+        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
         System.out.println("Isotropic Maximum likelihood transformation");
         isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
     }

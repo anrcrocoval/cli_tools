@@ -165,6 +165,33 @@ $$\begin{aligned}
 \end{aligned}$$
 $y_{i}$ et $z_{i}$ correspondent au $i^{ième}$ point fiduciaire de l'image cible et de l'image source respectivement.
 
+## Annexe 1
+Preuve que $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ est équivalent à minimiser $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$.
+
+$\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ peut-être écrit comme $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'} A \begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ avec $A = I$ une matrice symétrique. De même $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ peut-être écrit comme $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'} A \begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ avec $A = \Sigma^{-1}$. $A$ est symétrique car $\Sigma$ est une matrice symétrique.
+
+Soit
+$$\begin{aligned}
+g(\hat{R_{\theta}}, \hat{t}) &= \sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'} A \begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}} \\
+&= \sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}} \times nA \times \sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}
+\end{aligned}$$
+
+Soit $f(\hat{R_{\theta}}, \hat{t}) = \sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$. Nous avons donc :
+$$
+g(\hat{R_{\theta}}, \hat{t}) = f(\hat{R_{\theta}}, \hat{t})^{'} \times nA \times f(\hat{R_{\theta}}, \hat{t})
+$$
+Trouver un minimum ou maximum de $g(\hat{R_{\theta}}, \hat{t})$ revient à trouver $\hat{R_{\theta}}$ et $\hat{t}$ tels que $\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} = 0$ et $\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}} = 0$. En utilisant la composition des dérivée nous avons :
+$$\begin{aligned}
+\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} &= \frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial f(\hat{R_{\theta}}, \hat{t})} \times \frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} \\
+\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}} &= \frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial f(\hat{R_{\theta}}, \hat{t})} \times \frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}}
+\end{aligned}$$
+Sachant que $\frac{\partial x^{'}Ax}{\partial x} = 2x^{'}A$ quand $A$ est une matrice symétrique nous avons :
+$$\begin{aligned}
+\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} &= 2nf(\hat{R_{\theta}}, \hat{t})^{'}A \times \frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} \\
+\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}} &= 2nf(\hat{R_{\theta}}, \hat{t})^{'}A \times \frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}}
+\end{aligned}$$
+Supposant que $A \neq 0$, alors $\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} = 0 \Rightarrow f(\hat{R_{\theta}}, \hat{t})^{'} = 0$ ou $\frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{t}} = 0$ indépendamment de $A$. De même, $\frac{\partial g(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}} = 0 \Rightarrow f(\hat{R_{\theta}}, \hat{t})^{'} = 0$ ou $\frac{\partial f(\hat{R_{\theta}}, \hat{t})}{\partial \hat{R_{\theta}}} = 0$ indépendamment de $A$. Ainsi $\hat{R_{\theta}}$ et $\hat{t}$ qui minimisent $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'} A \begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ sont indépendants de $A$. Donc minimiser $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\Sigma^{-1}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$ est équivalent à minimiser $\sum_{i = 1}^{n}{\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}^{'}\begin{bmatrix}y_{i} - (\hat{R_{\theta}} z_{i} + \hat{t})\end{bmatrix}}$.
+
 # Simulations
 Nous avons effectué plusieurs simulations pour vérifier la validité et la précision de nos développements. Le protocole de simulation est le suivant :
 
