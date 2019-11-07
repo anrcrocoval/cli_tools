@@ -216,15 +216,18 @@ public class Main {
         System.out.println("True transformation");
         simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
         System.out.println("Schonemann transformation");
+
         shonemann.getHomogeneousMatrix().print(1,5);
         System.out.println("General Maximum likelihood transformation");
         generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+
         System.out.println("Isotropic Maximum likelihood transformation");
         isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
     }
 
     public static void main(String ... args){
         new CommandLine(new Main()).execute(args);
+        System.exit(0);
     }
 
     @Inject
