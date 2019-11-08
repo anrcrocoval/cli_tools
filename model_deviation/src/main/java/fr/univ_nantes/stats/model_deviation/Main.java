@@ -215,9 +215,10 @@ public class Main {
 
         System.out.println("True transformation");
         simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
-        System.out.println("Schonemann transformation");
 
+        System.out.println("Schonemann transformation");
         shonemann.getHomogeneousMatrix().print(1,5);
+
         System.out.println("General Maximum likelihood transformation");
         generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
 
