@@ -18,8 +18,9 @@ import java.awt.Color;
 import java.nio.file.Path;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.Rigid2DGeneralMaxLikelihoodComputer;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.Rigid2DIsotropicMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
 import plugins.perrine.easyclemv0.transformation.Similarity;
 import plugins.perrine.easyclemv0.transformation.Transformation;
 import plugins.perrine.easyclemv0.transformation.schema.TransformationType;
@@ -35,8 +36,9 @@ public class Main {
     private TestFiducialSetFactory testFiducialSetFactory;
     private AffineTransformationComputer affineTransformationComputer;
     private RigidTransformationComputer rigidTransformationComputer;
-    private Rigid2DGeneralMaxLikelihoodComputer rigid2DGeneralMaxLikelihoodComputer;
-    private Rigid2DIsotropicMaxLikelihoodComputer rigid2DIsotropicMaxLikelihoodComputer;
+    private InteriorPointRigid2DGeneralMaxLikelihoodComputer interiorPointRigid2DGeneralMaxLikelihoodComputer;
+    private ConjugateGradientRigid2DGeneralMaxLikelihoodComputer conjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+    private InteriorPointRigid2DIsotropicMaxLikelihoodComputer interiorPointRigid2DIsotropicMaxLikelihoodComputer;
 
     private AffineConfidenceEllipseFactory affineConfidenceEllipseFactory;
     private RigidConfidenceEllipseFactory rigidConfidenceEllipseFactory;
@@ -210,8 +212,9 @@ public class Main {
         );
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
         Similarity shonemann = rigidTransformationComputer.compute(current);
-        Similarity isotropicMaximumLikelihood = rigid2DIsotropicMaxLikelihoodComputer.compute(current);
-        Similarity generalMaximumLikelihood = rigid2DGeneralMaxLikelihoodComputer.compute(current);
+        Similarity isotropicMaximumLikelihood = interiorPointRigid2DIsotropicMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood = interiorPointRigid2DGeneralMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood2 = conjugateGradientRigid2DGeneralMaxLikelihoodComputer.compute(current);
 
         System.out.println("True transformation");
         simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
@@ -221,6 +224,9 @@ public class Main {
 
         System.out.println("General Maximum likelihood transformation");
         generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+
+        System.out.println("General Maximum likelihood 2 transformation");
+        generalMaximumLikelihood2.getHomogeneousMatrix().print(1,5);
 
         System.out.println("Isotropic Maximum likelihood transformation");
         isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
@@ -252,13 +258,18 @@ public class Main {
     }
 
     @Inject
-    public void setRigid2DGeneralMaxLikelihoodComputer(Rigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
-        this.rigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
+    public void setInteriorPointRigid2DGeneralMaxLikelihoodComputer(InteriorPointRigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.interiorPointRigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
     }
 
     @Inject
-    public void setRigid2DIsotropicMaxLikelihoodComputer(Rigid2DIsotropicMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
-        this.rigid2DIsotropicMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
+    public void setInteriorPointRigid2DIsotropicMaxLikelihoodComputer(InteriorPointRigid2DIsotropicMaxLikelihoodComputer rigid2DMaxLikelihoodComputer2) {
+        this.interiorPointRigid2DIsotropicMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer2;
+    }
+
+    @Inject
+    public void setConjugateGradientRigid2DGeneralMaxLikelihoodComputer(ConjugateGradientRigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.conjugateGradientRigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
     }
 
     @Inject
