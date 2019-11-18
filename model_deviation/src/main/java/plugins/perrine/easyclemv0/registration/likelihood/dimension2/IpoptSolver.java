@@ -25,7 +25,7 @@ public class IpoptSolver extends Ipopt {
         this.setNumericOption("print_frequency_time", 0);
         this.setIntegerOption("print_frequency_iter", 1);
         this.setIntegerOption("print_level", 0);
-        this.setStringOption("linear_solver", "ma57");
+        this.setStringOption("linear_solver", "ma27");
     }
 
     @Override

@@ -27,7 +27,7 @@ Create the folowing symbolink links :
 + `$IPOPT_INSTALL_DIR/build/Ipopt/contrib/JavaInterface/ipopt.jar` -> `lib/ipopt.jar`
 
 ## Windows
-+ `$IPOPT_INSTALL_DIR/build/Ipopt/contrib/JavaInterface/lib/libjipopt.so` -> `lib/libjipopt.dll`
++ `$IPOPT_INSTALL_DIR/build/Ipopt/contrib/JavaInterface/lib/libjipopt.dll` -> `lib/libjipopt.dll`
 
 ## Linux
 + `$IPOPT_INSTALL_DIR/build/Ipopt/contrib/JavaInterface/lib/libjipopt.so` -> `lib/libjipopt.so`
