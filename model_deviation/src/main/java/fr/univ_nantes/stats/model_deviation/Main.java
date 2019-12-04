@@ -18,6 +18,10 @@ import java.awt.Color;
 import java.nio.file.Path;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
+import plugins.perrine.easyclemv0.transformation.Similarity;
 import plugins.perrine.easyclemv0.transformation.Transformation;
 import plugins.perrine.easyclemv0.transformation.schema.TransformationType;
 
@@ -32,6 +36,9 @@ public class Main {
     private TestFiducialSetFactory testFiducialSetFactory;
     private AffineTransformationComputer affineTransformationComputer;
     private RigidTransformationComputer rigidTransformationComputer;
+    private InteriorPointRigid2DGeneralMaxLikelihoodComputer interiorPointRigid2DGeneralMaxLikelihoodComputer;
+    private ConjugateGradientRigid2DGeneralMaxLikelihoodComputer conjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+    private InteriorPointRigid2DIsotropicMaxLikelihoodComputer interiorPointRigid2DIsotropicMaxLikelihoodComputer;
 
     private AffineConfidenceEllipseFactory affineConfidenceEllipseFactory;
     private RigidConfidenceEllipseFactory rigidConfidenceEllipseFactory;
@@ -115,26 +122,26 @@ public class Main {
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
-        image.draw(image.center(getRectangle(zSource), zTargetWithoutNoise), Color.GREEN);
-        image.draw(image.center(getRectangle(zTarget), zTargetWithoutNoise), Color.RED);
+        image.fill(image.center(getRectangle(zSource), zTargetWithoutNoise), Color.GREEN);
+        image.fill(image.center(getRectangle(zTarget), zTargetWithoutNoise), Color.RED);
 
         Shape affineEllipse = affineConfidenceEllipseFactory.getFrom(zSource, current, alpha, height);
         image.draw(image.center(affineEllipse, zTargetWithoutNoise), Color.BLUE);
-        image.draw(image.center(getRectangle(affineTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.BLUE);
+        image.fill(image.center(getRectangle(affineTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.BLUE);
 
         Shape rigidEllipse = rigidConfidenceEllipseFactory.getFrom(zSource, current, alpha, height);
         image.draw(image.center(rigidEllipse, zTargetWithoutNoise), Color.ORANGE);
-        image.draw(image.center(getRectangle(rigidTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.ORANGE);
+        image.fill(image.center(getRectangle(rigidTransformationComputer.compute(current).apply(zSource)), zTargetWithoutNoise), Color.ORANGE);
 
         Shape trueEllipse = trueModelConfidenceEllipseFactory.getFrom(zTargetWithoutNoise, current, alpha, height, noiseCovariance);
         image.draw(image.center(trueEllipse, zTargetWithoutNoise), Color.WHITE);
-        image.draw(image.center(getRectangle(zTargetWithoutNoise), zTargetWithoutNoise), Color.WHITE);
+        image.fill(image.center(getRectangle(zTargetWithoutNoise), zTargetWithoutNoise), Color.WHITE);
 
         image.write(outputFilePath);
     }
 
     private Rectangle getRectangle(Point point) {
-        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 1, 1);
+        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 5, 5);
     }
 
     @Command
@@ -194,8 +201,40 @@ public class Main {
         System.out.println(String.format("True area : %.3f", trueArea / N));
     }
 
+    @Command
+    public void solver() {
+        int[] range = new int[]{width, height};
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
+        Similarity simpleRotationTransformation = testTransformationFactory.getRandomSimpleRotationTransformation(2);
+
+        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
+            simpleRotationTransformation, n, range
+        );
+        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
+        Similarity shonemann = rigidTransformationComputer.compute(current);
+        Similarity isotropicMaximumLikelihood = interiorPointRigid2DIsotropicMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood = interiorPointRigid2DGeneralMaxLikelihoodComputer.compute(current);
+        Similarity generalMaximumLikelihood2 = conjugateGradientRigid2DGeneralMaxLikelihoodComputer.compute(current);
+
+        System.out.println("True transformation");
+        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
+
+        System.out.println("Schonemann transformation");
+        shonemann.getHomogeneousMatrix().print(1,5);
+
+        System.out.println("General Maximum likelihood transformation");
+        generalMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+
+        System.out.println("General Maximum likelihood 2 transformation");
+        generalMaximumLikelihood2.getHomogeneousMatrix().print(1,5);
+
+        System.out.println("Isotropic Maximum likelihood transformation");
+        isotropicMaximumLikelihood.getHomogeneousMatrix().print(1,5);
+    }
+
     public static void main(String ... args){
         new CommandLine(new Main()).execute(args);
+        System.exit(0);
     }
 
     @Inject
@@ -216,6 +255,21 @@ public class Main {
     @Inject
     public void setRigidTransformationComputer(RigidTransformationComputer rigidTransformationComputer) {
         this.rigidTransformationComputer = rigidTransformationComputer;
+    }
+
+    @Inject
+    public void setInteriorPointRigid2DGeneralMaxLikelihoodComputer(InteriorPointRigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.interiorPointRigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
+    }
+
+    @Inject
+    public void setInteriorPointRigid2DIsotropicMaxLikelihoodComputer(InteriorPointRigid2DIsotropicMaxLikelihoodComputer rigid2DMaxLikelihoodComputer2) {
+        this.interiorPointRigid2DIsotropicMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer2;
+    }
+
+    @Inject
+    public void setConjugateGradientRigid2DGeneralMaxLikelihoodComputer(ConjugateGradientRigid2DGeneralMaxLikelihoodComputer rigid2DMaxLikelihoodComputer) {
+        this.conjugateGradientRigid2DGeneralMaxLikelihoodComputer = rigid2DMaxLikelihoodComputer;
     }
 
     @Inject
