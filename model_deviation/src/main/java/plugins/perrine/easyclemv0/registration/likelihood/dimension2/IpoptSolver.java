@@ -1,7 +1,7 @@
 package plugins.perrine.easyclemv0.registration.likelihood.dimension2;
 
 import org.coinor.Ipopt;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.BaseOptimProblem;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.BaseOptimProblem;
 
 import java.util.concurrent.ExecutionException;
 

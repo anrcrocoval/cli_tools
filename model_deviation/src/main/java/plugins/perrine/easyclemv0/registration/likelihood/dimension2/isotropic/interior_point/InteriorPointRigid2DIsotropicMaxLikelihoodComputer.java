@@ -1,11 +1,10 @@
 package plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.interior_point;
 
 import org.coinor.Ipopt;
-import plugins.perrine.easyclemv0.fiducialset.FiducialSet;
+import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotropic.ConstrainedOptimProblem;
 import plugins.perrine.easyclemv0.registration.likelihood.dimension2.IpoptSolver;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.ConstrainedOptimProblem;
-
 import javax.inject.Inject;
 
 public class InteriorPointRigid2DIsotropicMaxLikelihoodComputer extends Rigid2DMaxLikelihoodComputer {

@@ -1,6 +1,7 @@
 package fr.univ_nantes.stats.model_deviation;
 
-import plugins.perrine.easyclemv0.fiducialset.dataset.point.Point;
+import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -24,7 +25,7 @@ public class Image {
     }
 
     public Shape center(Shape shape, Point center) {
-        plugins.perrine.easyclemv0.fiducialset.dataset.point.Point minus = center.minus(new Point(new double[]{(double) width / 2, (double) height / 2}));
+        Point minus = center.minus(new Point(new double[]{(double) width / 2, (double) height / 2}));
         return AffineTransform.getTranslateInstance(-minus.get(0), minus.get(1)).createTransformedShape(shape);
     }
 
