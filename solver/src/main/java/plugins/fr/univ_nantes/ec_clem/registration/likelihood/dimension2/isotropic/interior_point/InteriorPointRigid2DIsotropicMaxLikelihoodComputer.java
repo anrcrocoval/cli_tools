@@ -18,8 +18,10 @@ public class InteriorPointRigid2DIsotropicMaxLikelihoodComputer extends Rigid2DM
 
     @Override
     protected double[] optimize(FiducialSet fiducialSet) {
-        Ipopt ipopt = new IpoptSolver(new ConstrainedOptimProblem(fiducialSet));
+        ConstrainedOptimProblem optimProblem = new ConstrainedOptimProblem(fiducialSet);
+        Ipopt ipopt = new IpoptSolver(optimProblem);
         ipopt.OptimizeNLP();
+        optimProblem.close();
         return ipopt.getVariableValues();
     }
 }
