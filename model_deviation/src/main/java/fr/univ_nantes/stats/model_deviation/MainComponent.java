@@ -6,7 +6,10 @@ import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2D
 import javax.inject.Singleton;
 
 @Singleton
-@Component(modules = Rigid2DMaxLikelihoodComputerModule.class)
+@Component(modules = {
+    Rigid2DMaxLikelihoodComputerModule.class,
+    MainModule.class
+})
 public interface MainComponent {
     void inject(Main main);
 }

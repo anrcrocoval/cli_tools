@@ -4,6 +4,7 @@ import org.coinor.Ipopt;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.matrix.MatrixUtil;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.IpoptSolver;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.OptimizationResult;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.BaseOptimProblem;
 
@@ -14,15 +15,17 @@ public class InteriorPointRigid2DGeneralMaxLikelihoodComputer extends Rigid2DMax
     @Inject
     public InteriorPointRigid2DGeneralMaxLikelihoodComputer(MatrixUtil matrixUtil) {
         super(matrixUtil);
-//        DaggerInteriorPointRigid2DGeneralLikelihoodComputerComponent.create().inject(this);
     }
 
     @Override
-    protected double[] optimize(FiducialSet fiducialSet) {
+    protected OptimizationResult optimize(FiducialSet fiducialSet) {
         BaseOptimProblem optimProblem = new BaseOptimProblem(fiducialSet);
         Ipopt ipopt = new IpoptSolver(optimProblem);
         ipopt.OptimizeNLP();
         optimProblem.close();
-        return ipopt.getVariableValues();
+        return new OptimizationResult(
+            ipopt.getVariableValues(),
+            ipopt.getObjectiveValue()
+        );
     }
 }

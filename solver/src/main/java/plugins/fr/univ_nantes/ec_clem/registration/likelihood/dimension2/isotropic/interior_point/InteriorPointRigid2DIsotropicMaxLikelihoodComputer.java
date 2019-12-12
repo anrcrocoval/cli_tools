@@ -3,6 +3,7 @@ package plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotro
 import org.coinor.Ipopt;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.matrix.MatrixUtil;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.OptimizationResult;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotropic.ConstrainedOptimProblem;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.IpoptSolver;
@@ -13,15 +14,17 @@ public class InteriorPointRigid2DIsotropicMaxLikelihoodComputer extends Rigid2DM
     @Inject
     public InteriorPointRigid2DIsotropicMaxLikelihoodComputer(MatrixUtil matrixUtil) {
         super(matrixUtil);
-//        DaggerInteriorPointRigid2DIsotropicLikelihoodComputerComponent.create().inject(this);
     }
 
     @Override
-    protected double[] optimize(FiducialSet fiducialSet) {
+    protected OptimizationResult optimize(FiducialSet fiducialSet) {
         ConstrainedOptimProblem optimProblem = new ConstrainedOptimProblem(fiducialSet);
         Ipopt ipopt = new IpoptSolver(optimProblem);
         ipopt.OptimizeNLP();
         optimProblem.close();
-        return ipopt.getVariableValues();
+        return new OptimizationResult(
+            ipopt.getVariableValues(),
+            ipopt.getObjectiveValue()
+        );
     }
 }

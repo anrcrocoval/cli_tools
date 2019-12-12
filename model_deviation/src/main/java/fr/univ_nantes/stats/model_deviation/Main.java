@@ -25,6 +25,7 @@ import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
 import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
 import plugins.fr.univ_nantes.ec_clem.registration.AffineRegistrationParameterComputer;
+import plugins.fr.univ_nantes.ec_clem.registration.RegistrationParameter;
 import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
@@ -48,7 +49,7 @@ public class Main {
     private RigidRegistrationParameterComputer rigidTransformationComputer;
 //    private ConjugateGradientRigid2DGeneralMaxLikelihoodComputer anisotripicRigidTransformationComputer;
 
-//    @Named("ipopt_general") private Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer;
+    private Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer;
     private ConfidenceEllipseFactory confidenceEllipseFactory;
     private ShapeEllipseFactory shapeEllipseFactory;
     private TrueModelConfidenceEllipseFactory trueModelConfidenceEllipseFactory;
@@ -335,6 +336,25 @@ public class Main {
         return val;
     }
 
+    @Command
+    public void likelihood() {
+        int[] range = new int[]{width, height};
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
+
+        Transformation simpleRotationTransformation = getRandomTransformation(transformationType);
+        Point zSource = testFiducialSetFactory.getRandomPoint(range);
+        Point zTargetWithoutNoise = simpleRotationTransformation.apply(zSource);
+        Point zTarget = testFiducialSetFactory.addGaussianNoise(zTargetWithoutNoise, noiseCovariance);
+
+        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
+            simpleRotationTransformation, n, range
+        );
+
+        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
+        RegistrationParameter compute = anisotripicRigidTransformationComputer.compute(current);
+        System.out.println(compute.getLogLikelihood());
+    }
+
     public static void main(String ... args){
         new CommandLine(new Main()).execute(args);
         System.exit(0);
@@ -360,15 +380,10 @@ public class Main {
         this.rigidTransformationComputer = rigidTransformationComputer;
     }
 
-//    @Inject
-//    public void setConjugateGradientRigid2DGeneralMaxLikelihoodComputer(ConjugateGradientRigid2DGeneralMaxLikelihoodComputer anisotripicRigidTransformationComputer) {
-//        this.anisotripicRigidTransformationComputer = anisotripicRigidTransformationComputer;
-//    }
-
-//    @Inject
-//    public void setRigid2DMaxLikelihoodComputer(Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer) {
-//        this.anisotripicRigidTransformationComputer = anisotripicRigidTransformationComputer;
-//    }
+    @Inject
+    public void setRigid2DMaxLikelihoodComputer(@Named("ipopt_general") Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer) {
+        this.anisotripicRigidTransformationComputer = anisotripicRigidTransformationComputer;
+    }
 
     @Inject
     public void setConfidenceEllipseFactory(ConfidenceEllipseFactory confidenceEllipseFactory) {
