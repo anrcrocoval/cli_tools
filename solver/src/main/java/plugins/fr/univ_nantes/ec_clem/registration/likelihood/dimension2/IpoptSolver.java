@@ -1,4 +1,4 @@
-package plugins.perrine.easyclemv0.registration.likelihood.dimension2;
+package plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2;
 
 import org.coinor.Ipopt;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.BaseOptimProblem;

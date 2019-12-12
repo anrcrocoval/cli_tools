@@ -8,12 +8,12 @@ import picocli.CommandLine.Option;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
 import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
-import plugins.fr.univ_nantes.ec_clem.registration.RigidTransformationComputer;
+import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.transformation.Similarity;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
-import plugins.perrine.easyclemv0.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
+import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
 
 @Command(
     name = "solver",
@@ -24,7 +24,7 @@ public class Main {
 
     private TestTransformationFactory testTransformationFactory;
     private TestFiducialSetFactory testFiducialSetFactory;
-    private RigidTransformationComputer rigidTransformationComputer;
+    private RigidRegistrationParameterComputer rigidTransformationComputer;
     private InteriorPointRigid2DGeneralMaxLikelihoodComputer interiorPointRigid2DGeneralMaxLikelihoodComputer;
     private ConjugateGradientRigid2DGeneralMaxLikelihoodComputer conjugateGradientRigid2DGeneralMaxLikelihoodComputer;
     private InteriorPointRigid2DIsotropicMaxLikelihoodComputer interiorPointRigid2DIsotropicMaxLikelihoodComputer;
@@ -78,10 +78,10 @@ public class Main {
             simpleRotationTransformation, n, range
         );
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
-        Similarity shonemann = rigidTransformationComputer.compute(current);
-        Similarity isotropicMaximumLikelihood = interiorPointRigid2DIsotropicMaxLikelihoodComputer.compute(current);
-        Similarity generalMaximumLikelihood = interiorPointRigid2DGeneralMaxLikelihoodComputer.compute(current);
-        Similarity generalMaximumLikelihood2 = conjugateGradientRigid2DGeneralMaxLikelihoodComputer.compute(current);
+        Similarity shonemann = (Similarity) rigidTransformationComputer.compute(current).getTransformation();
+        Similarity isotropicMaximumLikelihood = (Similarity) interiorPointRigid2DIsotropicMaxLikelihoodComputer.compute(current).getTransformation();
+        Similarity generalMaximumLikelihood = (Similarity) interiorPointRigid2DGeneralMaxLikelihoodComputer.compute(current).getTransformation();
+        Similarity generalMaximumLikelihood2 = (Similarity) conjugateGradientRigid2DGeneralMaxLikelihoodComputer.compute(current).getTransformation();
 
         System.out.println("True transformation");
         simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
@@ -115,7 +115,7 @@ public class Main {
     }
 
     @Inject
-    public void setRigidTransformationComputer(RigidTransformationComputer rigidTransformationComputer) {
+    public void setRigidRegistrationParameterComputer(RigidRegistrationParameterComputer rigidTransformationComputer) {
         this.rigidTransformationComputer = rigidTransformationComputer;
     }
 

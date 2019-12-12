@@ -6,6 +6,7 @@ import javax.inject.Inject;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.util.Arrays;
 
 public class ShapeEllipseFactory {
 
@@ -14,6 +15,7 @@ public class ShapeEllipseFactory {
 
     public Shape getFrom(Ellipse ellipse, int height) {
         double[] eigenValues = ellipse.getEigenValues();
+//        System.out.println(Arrays.toString(eigenValues));
         Point zTarget = ellipse.getCenter();
         double a = Math.sqrt(eigenValues[0]);
         double b = Math.sqrt(eigenValues[1]);
