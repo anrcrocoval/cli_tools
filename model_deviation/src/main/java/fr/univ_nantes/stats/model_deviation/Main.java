@@ -31,6 +31,7 @@ import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2D
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
 import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
+import plugins.fr.univ_nantes.ec_clem.transformation.AffineTransformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.NoiseModel;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationSchema;
@@ -50,6 +51,7 @@ public class Main {
 //    private ConjugateGradientRigid2DGeneralMaxLikelihoodComputer anisotripicRigidTransformationComputer;
 
     private Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer;
+    private Rigid2DMaxLikelihoodComputer isotripicRigidTransformationComputer;
     private ConfidenceEllipseFactory confidenceEllipseFactory;
     private ShapeEllipseFactory shapeEllipseFactory;
     private TrueModelConfidenceEllipseFactory trueModelConfidenceEllipseFactory;
@@ -341,7 +343,8 @@ public class Main {
         int[] range = new int[]{width, height};
         double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
 
-        Transformation simpleRotationTransformation = getRandomTransformation(transformationType);
+        AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
+        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
         Point zSource = testFiducialSetFactory.getRandomPoint(range);
         Point zTargetWithoutNoise = simpleRotationTransformation.apply(zSource);
         Point zTarget = testFiducialSetFactory.addGaussianNoise(zTargetWithoutNoise, noiseCovariance);
@@ -351,8 +354,22 @@ public class Main {
         );
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
-        RegistrationParameter compute = anisotripicRigidTransformationComputer.compute(current);
-        System.out.println(compute.getLogLikelihood());
+
+        RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
+        ((AffineTransformation) computeAnisotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
+        System.out.println(computeAnisotropicRigid.getLogLikelihood() * -1d);
+
+        RegistrationParameter computeIsotropicRigid = isotripicRigidTransformationComputer.compute(current);
+        ((AffineTransformation) computeIsotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
+        System.out.println(computeIsotropicRigid.getLogLikelihood() * -1d);
+
+        RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
+        ((AffineTransformation) computeAffine.getTransformation()).getHomogeneousMatrix().print(1,5);
+        System.out.println(computeAffine.getLogLikelihood());
+
+        RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
+        ((AffineTransformation) computeRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
+        System.out.println(computeRigid.getLogLikelihood());
     }
 
     public static void main(String ... args){
@@ -381,8 +398,13 @@ public class Main {
     }
 
     @Inject
-    public void setRigid2DMaxLikelihoodComputer(@Named("ipopt_general") Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer) {
-        this.anisotripicRigidTransformationComputer = anisotripicRigidTransformationComputer;
+    public void setRigid2DGeneralMaxLikelihoodComputer(@Named("ipopt_general") Rigid2DMaxLikelihoodComputer solver) {
+        this.anisotripicRigidTransformationComputer = solver;
+    }
+
+    @Inject
+    public void setRigid2DConstrainedMaxLikelihoodComputer(@Named("ipopt_constrained") Rigid2DMaxLikelihoodComputer solver) {
+        this.isotripicRigidTransformationComputer = solver;
     }
 
     @Inject
