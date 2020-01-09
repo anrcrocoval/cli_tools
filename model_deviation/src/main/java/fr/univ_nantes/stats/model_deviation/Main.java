@@ -7,6 +7,7 @@ import fr.univ_nantes.stats.model_deviation.DaggerMainComponent;
 import icy.sequence.DimensionId;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import picocli.CommandLine;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -15,11 +16,14 @@ import java.awt.Rectangle;
 import java.awt.Color;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.*;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import plugins.fr.univ_nantes.ec_clem.error.ellipse.ConfidenceEllipseFactory;
+import plugins.fr.univ_nantes.ec_clem.error.likelihood_ratio.LikelihoodRatioTest;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
@@ -36,6 +40,8 @@ import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.NoiseModel;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationSchema;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
+
+import static java.lang.Double.max;
 
 @Command(
     name = "model_deviation",
@@ -345,9 +351,6 @@ public class Main {
 
         AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
         simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
-        Point zSource = testFiducialSetFactory.getRandomPoint(range);
-        Point zTargetWithoutNoise = simpleRotationTransformation.apply(zSource);
-        Point zTarget = testFiducialSetFactory.addGaussianNoise(zTargetWithoutNoise, noiseCovariance);
 
         FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
             simpleRotationTransformation, n, range
@@ -355,24 +358,119 @@ public class Main {
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
+        System.out.println("Anisotropic rigid");
         RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
         ((AffineTransformation) computeAnisotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
-        System.out.println(computeAnisotropicRigid.getLogLikelihood() * -1d);
+        computeAnisotropicRigid.getNoiseCovariance().print(1,5);
+        System.out.println(computeAnisotropicRigid.getLogLikelihood());
 
+        System.out.println("Isotropic rigid (ipopt)");
         RegistrationParameter computeIsotropicRigid = isotripicRigidTransformationComputer.compute(current);
         ((AffineTransformation) computeIsotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
-        System.out.println(computeIsotropicRigid.getLogLikelihood() * -1d);
+        computeIsotropicRigid.getNoiseCovariance().print(1,5);
+        System.out.println(computeIsotropicRigid.getLogLikelihood());
 
+        System.out.println("Anisotropic affine");
         RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
         ((AffineTransformation) computeAffine.getTransformation()).getHomogeneousMatrix().print(1,5);
+        computeAffine.getNoiseCovariance().print(1,5);
         System.out.println(computeAffine.getLogLikelihood());
 
+        System.out.println("Isotropic rigid (schonnemann + ipopt)");
         RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
         ((AffineTransformation) computeRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
+        computeRigid.getNoiseCovariance().print(1,5);
         System.out.println(computeRigid.getLogLikelihood());
+
+        LikelihoodRatioTest likelihoodRatioTest = new LikelihoodRatioTest();
+        System.out.println("Anisotropic rigid / Anisotropic affine");
+        System.out.println(
+            String.format(
+                "pvalue: %f",
+                likelihoodRatioTest.test(3, computeAnisotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+            )
+        );
+
+        System.out.println("Isotropic rigid (ipopt) / Anisotropic rigid");
+        System.out.println(
+            String.format(
+                "pvalue: %f",
+                likelihoodRatioTest.test(2, computeIsotropicRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
+            )
+        );
+
+        System.out.println("Isotropic rigid (schonnemann + ipopt) / Anisotropic rigid");
+        System.out.println(
+            String.format(
+                "pvalue: %f",
+                likelihoodRatioTest.test(2, computeRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
+            )
+        );
+
+        System.out.println("Isotropic rigid (ipopt) / Anisotropic affine");
+        System.out.println(
+            String.format(
+                "pvalue: %f",
+                likelihoodRatioTest.test(5, computeIsotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+            )
+        );
+
+        System.out.println("Isotropic rigid (schonnemann + ipopt) / Anisotropic affine");
+        System.out.println(
+            String.format(
+                "pvalue: %f",
+                likelihoodRatioTest.test(5, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+            )
+        );
+}
+
+    @Command
+    public void leaveOneOut() {
+        int[] range = new int[]{width, height};
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
+
+        AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
+        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
+
+        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
+            simpleRotationTransformation, n, range
+        );
+        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
+
+        double[] list = new double[current.getN()];
+        for(int i = 0; i < current.getN(); i++) {
+            FiducialSet clone = current.clone();
+            Point excludedSource = clone.getSourceDataset().getPoint(i);
+            Point excludedTarget = clone.getTargetDataset().getPoint(i);
+            clone.remove(i);
+
+//            RegistrationParameter compute = anisotripicRigidTransformationComputer.compute(clone);
+            RegistrationParameter compute = affineTransformationComputer.compute(clone);
+            Point predictedTarget = compute.getTransformation().apply(excludedSource);
+            double distance = excludedTarget.getDistance(predictedTarget);
+
+            Shape ellipse = shapeEllipseFactory.getFrom(
+                confidenceEllipseFactory.getFrom(
+                    excludedSource,
+                    new TransformationSchema(clone, TransformationType.AFFINE, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
+                    alpha
+                ),
+                height
+            );
+            double predictedDistance = max(ellipse.getBounds2D().getWidth(), ellipse.getBounds2D().getHeight()) / 2d;
+            list[i] = distance;
+            System.out.println(String.format("Observed: %f, predicted: %f", distance, predictedDistance));
+        }
+        Percentile percentile = new Percentile();
+        percentile.setData(list);
+        System.out.println(String.format("50%%: %f", percentile.evaluate(50)));
+        System.out.println(String.format("80%%: %f", percentile.evaluate(80)));
+        System.out.println(String.format("95%%: %f", percentile.evaluate(95)));
+        System.out.println(String.format("99%%: %f", percentile.evaluate(99)));
+        System.out.println(String.format("100%%: %f", percentile.evaluate(100)));
     }
 
-    public static void main(String ... args){
+    public static void main(String ... args) {
         new CommandLine(new Main()).execute(args);
         System.exit(0);
     }
