@@ -364,11 +364,11 @@ public class Main {
         computeAnisotropicRigid.getNoiseCovariance().print(1,5);
         System.out.println(computeAnisotropicRigid.getLogLikelihood());
 
-        System.out.println("Isotropic rigid (ipopt)");
-        RegistrationParameter computeIsotropicRigid = isotripicRigidTransformationComputer.compute(current);
-        ((AffineTransformation) computeIsotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
-        computeIsotropicRigid.getNoiseCovariance().print(1,5);
-        System.out.println(computeIsotropicRigid.getLogLikelihood());
+//        System.out.println("Isotropic rigid (ipopt)");
+//        RegistrationParameter computeIsotropicRigid = isotripicRigidTransformationComputer.compute(current);
+//        ((AffineTransformation) computeIsotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
+//        computeIsotropicRigid.getNoiseCovariance().print(1,5);
+//        System.out.println(computeIsotropicRigid.getLogLikelihood());
 
         System.out.println("Anisotropic affine");
         RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
@@ -376,7 +376,7 @@ public class Main {
         computeAffine.getNoiseCovariance().print(1,5);
         System.out.println(computeAffine.getLogLikelihood());
 
-        System.out.println("Isotropic rigid (schonnemann + ipopt)");
+        System.out.println("Isotropic rigid (schonnemann)");
         RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
         ((AffineTransformation) computeRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
         computeRigid.getNoiseCovariance().print(1,5);
@@ -391,15 +391,15 @@ public class Main {
             )
         );
 
-        System.out.println("Isotropic rigid (ipopt) / Anisotropic rigid");
-        System.out.println(
-            String.format(
-                "pvalue: %f",
-                likelihoodRatioTest.test(2, computeIsotropicRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
-            )
-        );
+//        System.out.println("Isotropic rigid (ipopt) / Anisotropic rigid");
+//        System.out.println(
+//            String.format(
+//                "pvalue: %f",
+//                likelihoodRatioTest.test(2, computeIsotropicRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
+//            )
+//        );
 
-        System.out.println("Isotropic rigid (schonnemann + ipopt) / Anisotropic rigid");
+        System.out.println("Isotropic rigid (schonnemann) / Anisotropic rigid");
         System.out.println(
             String.format(
                 "pvalue: %f",
@@ -407,15 +407,15 @@ public class Main {
             )
         );
 
-        System.out.println("Isotropic rigid (ipopt) / Anisotropic affine");
-        System.out.println(
-            String.format(
-                "pvalue: %f",
-                likelihoodRatioTest.test(5, computeIsotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
-            )
-        );
+//        System.out.println("Isotropic rigid (ipopt) / Anisotropic affine");
+//        System.out.println(
+//            String.format(
+//                "pvalue: %f",
+//                likelihoodRatioTest.test(5, computeIsotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+//            )
+//        );
 
-        System.out.println("Isotropic rigid (schonnemann + ipopt) / Anisotropic affine");
+        System.out.println("Isotropic rigid (schonnemann) / Anisotropic affine");
         System.out.println(
             String.format(
                 "pvalue: %f",
@@ -437,7 +437,9 @@ public class Main {
         );
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
-        double[] list = new double[current.getN()];
+        double[] distanceList = new double[current.getN()];
+        double[] predictedDistanceList = new double[current.getN()];
+        double[] predictedAreaList = new double[current.getN()];
         for(int i = 0; i < current.getN(); i++) {
             FiducialSet clone = current.clone();
             Point excludedSource = clone.getSourceDataset().getPoint(i);
@@ -458,16 +460,31 @@ public class Main {
                 height
             );
             double predictedDistance = max(ellipse.getBounds2D().getWidth(), ellipse.getBounds2D().getHeight()) / 2d;
-            list[i] = distance;
-            System.out.println(String.format("Observed: %f, predicted: %f", distance, predictedDistance));
+            double predictedArea = Math.PI * ellipse.getBounds2D().getWidth() / 2d * ellipse.getBounds2D().getHeight() / 2d;
+            distanceList[i] = distance;
+            predictedDistanceList[i] = predictedDistance;
+            predictedAreaList[i] = predictedArea;
+//            System.out.println(String.format("Observed: %f, predicted: %f, predicted area: %f", distance, predictedDistance, predictedArea));
         }
         Percentile percentile = new Percentile();
-        percentile.setData(list);
-        System.out.println(String.format("50%%: %f", percentile.evaluate(50)));
-        System.out.println(String.format("80%%: %f", percentile.evaluate(80)));
-        System.out.println(String.format("95%%: %f", percentile.evaluate(95)));
-        System.out.println(String.format("99%%: %f", percentile.evaluate(99)));
-        System.out.println(String.format("100%%: %f", percentile.evaluate(100)));
+        percentile.setData(distanceList);
+        Percentile predictedDistancePercentile = new Percentile();
+        predictedDistancePercentile.setData(predictedDistanceList);
+        Percentile predictedAreaListPercentile = new Percentile();
+        predictedAreaListPercentile.setData(predictedAreaList);
+
+        System.out.println(String.format("50%%: observed error: %f, observed area: %f", percentile.evaluate(50), Math.PI * percentile.evaluate(50) * percentile.evaluate(50)));
+        System.out.println(String.format("80%%: observed error: %f, observed area: %f", percentile.evaluate(80), Math.PI * percentile.evaluate(80) * percentile.evaluate(80)));
+        System.out.println(String.format("95%%: observed error: %f, observed area: %f", percentile.evaluate(95), Math.PI * percentile.evaluate(95) * percentile.evaluate(95)));
+        System.out.println(String.format("99%%: observed error: %f, observed area: %f", percentile.evaluate(99), Math.PI * percentile.evaluate(99) * percentile.evaluate(99)));
+        System.out.println(String.format("100%%: observed error: %f, observed area: %f", percentile.evaluate(100), Math.PI * percentile.evaluate(100) * percentile.evaluate(100)));
+
+
+        System.out.println(String.format("50%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(50), predictedAreaListPercentile.evaluate(50)));
+        System.out.println(String.format("80%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(80), predictedAreaListPercentile.evaluate(80)));
+        System.out.println(String.format("95%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(95), predictedAreaListPercentile.evaluate(95)));
+        System.out.println(String.format("99%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(99), predictedAreaListPercentile.evaluate(99)));
+        System.out.println(String.format("100%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(100), predictedAreaListPercentile.evaluate(100)));
     }
 
     public static void main(String ... args) {
