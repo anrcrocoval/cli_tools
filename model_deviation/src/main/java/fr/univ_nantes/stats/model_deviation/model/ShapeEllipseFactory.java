@@ -28,4 +28,10 @@ public class ShapeEllipseFactory {
             )
         );
     }
+
+    public Shape getFrom(Point zTarget, double radius, int height) {
+        return AffineTransform.getTranslateInstance(zTarget.get(0), height - zTarget.get(1)).createTransformedShape(
+            new Ellipse2D.Double(-radius, -radius, 2 * radius, 2 * radius)
+        );
+    }
 }
