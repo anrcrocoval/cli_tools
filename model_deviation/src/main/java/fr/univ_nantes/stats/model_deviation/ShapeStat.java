@@ -7,14 +7,14 @@ public class ShapeStat {
     private int counter = 0;
     private int n = 0;
 
-    public void updateCounter(boolean shouldUpdate) {
+    public synchronized void updateCounter(boolean shouldUpdate) {
         if(shouldUpdate) {
             counter++;
         }
         n++;
     }
 
-    public void updateArea(double area) {
+    public synchronized void updateArea(double area) {
         this.area.increment(area);
     }
 
