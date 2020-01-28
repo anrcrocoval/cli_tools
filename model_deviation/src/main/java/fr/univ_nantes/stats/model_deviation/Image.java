@@ -25,26 +25,34 @@ public class Image {
     }
 
     public Shape center(Shape shape, Point center) {
-        Point minus = center.minus(new Point(new double[]{(double) width / 2, (double) height / 2}));
-        return AffineTransform.getTranslateInstance(-minus.get(0), minus.get(1)).createTransformedShape(shape);
+        Point minus = center.minus(new Point(new double[]{(double) this.width / 2, (double) this.height / 2}));
+        return AffineTransform.getTranslateInstance(-minus.get(0), -minus.get(1)).createTransformedShape(shape);
     }
 
     public void draw(Shape shape, Color color) {
-        graphics2D.setColor(color);
-        graphics2D.draw(shape);
+        synchronized(this) {
+            setColor(color);
+            graphics2D.draw(shape);
+        }
     }
 
     public void fill(Shape shape, Color color) {
-        graphics2D.setColor(color);
-        graphics2D.fill(shape);
+        synchronized(this) {
+            setColor(color);
+            graphics2D.fill(shape);
+        }
     }
 
-    public void write(Path path) {
+    public synchronized void write(Path path) {
         graphics2D.dispose();
         try {
             ImageIO.write(bufferedImage, "png", path.toFile());
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void setColor(Color color) {
+        graphics2D.setColor(color);
     }
 }
