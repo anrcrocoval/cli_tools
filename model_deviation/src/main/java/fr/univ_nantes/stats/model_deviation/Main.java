@@ -207,7 +207,6 @@ public class Main {
     }
 
     private Rectangle getRectangle(Point point) {
-//        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 5, 5);
         return new Rectangle((int) point.get(0), (int) (point.get(1)), 5, 5);
     }
 
@@ -272,11 +271,11 @@ public class Main {
                     trueModelConfidenceEllipseFactory.getFrom(simpleRotationTransformation.apply(zSource), current, noiseCovariance, alpha)
                 );
                 return new SimulationResult(
-                    affineEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
-                    rigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
+                    affineEllipse.contains(zTarget.get(0), zTarget.get(1)),
+                    rigidEllipse.contains(zTarget.get(0), zTarget.get(1)),
 //                    anisotropicRigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
                     false,
-                    trueEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
+                    trueEllipse.contains(zTarget.get(0), zTarget.get(1)),
                     getEllipseArea(affineEllipse),
                     getEllipseArea(rigidEllipse),
 //                    getEllipseArea(anisotropicRigidEllipse),
@@ -353,7 +352,6 @@ public class Main {
         double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
 
         AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
-        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
 
         FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
             simpleRotationTransformation, n, range
@@ -361,11 +359,7 @@ public class Main {
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
-        System.out.println("Anisotropic rigid");
         RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
-        ((AffineTransformation) computeAnisotropicRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
-        computeAnisotropicRigid.getNoiseCovariance().print(1,5);
-        System.out.println(computeAnisotropicRigid.getLogLikelihood());
 
 //        System.out.println("Isotropic rigid (ipopt)");
 //        RegistrationParameter computeIsotropicRigid = isotripicRigidTransformationComputer.compute(current);
@@ -373,17 +367,8 @@ public class Main {
 //        computeIsotropicRigid.getNoiseCovariance().print(1,5);
 //        System.out.println(computeIsotropicRigid.getLogLikelihood());
 
-        System.out.println("Anisotropic affine");
         RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
-        ((AffineTransformation) computeAffine.getTransformation()).getHomogeneousMatrix().print(1,5);
-        computeAffine.getNoiseCovariance().print(1,5);
-        System.out.println(computeAffine.getLogLikelihood());
-
-        System.out.println("Isotropic rigid (schonnemann)");
         RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
-        ((AffineTransformation) computeRigid.getTransformation()).getHomogeneousMatrix().print(1,5);
-        computeRigid.getNoiseCovariance().print(1,5);
-        System.out.println(computeRigid.getLogLikelihood());
 
         LikelihoodRatioTest likelihoodRatioTest = new LikelihoodRatioTest();
         System.out.println("Anisotropic rigid / Anisotropic affine");
@@ -468,8 +453,7 @@ public class Main {
             names = "--fiducial-configuration-covariance",
             description = "Configuration covariance matrix.\nDefault : ${DEFAULT-VALUE}.",
             arity = "4"
-        )
-            double[] configurationCovarianceValues
+        ) double[] configurationCovarianceValues
     ) {
         int[] range = new int[]{width, height};
         double[][] configurationCovariance = new Matrix(configurationCovarianceValues, range.length).getArray();
@@ -548,11 +532,11 @@ public class Main {
         testSourceDataset.addPoint(new Point(new double[] { (double) width / 2, (double) height / 2 }));
         testSourceDataset.addPoint(new Point(new double[] { 0, 0 }));
         testSourceDataset.addPoint(new Point(new double[] { width, height }));
-        testSourceDataset.addPoint(new Point(new double[] { -width, -height }));
-        testSourceDataset.addPoint(new Point(new double[] { 0, height }));
-        testSourceDataset.addPoint(new Point(new double[] { 0, height * 2 }));
         testSourceDataset.addPoint(new Point(new double[] { width, 0 }));
+        testSourceDataset.addPoint(new Point(new double[] { 0, height }));
         testSourceDataset.addPoint(new Point(new double[] { width * 2, 0 }));
+        testSourceDataset.addPoint(new Point(new double[] { 0, height * 2 }));
+        testSourceDataset.addPoint(new Point(new double[] { -width, -height }));
         testSourceDataset.addPoint(new Point(new double[] { width * 2, height * 2 }));
         Dataset testTargetDataset = transformation.apply(testSourceDataset);
 
@@ -564,8 +548,6 @@ public class Main {
             ellipsesFromLoo[i] = new ShapeStat();
             disksFromLoo[i] = new ShapeStat();
         }
-
-        Image image = new Image(width * 8, height * 8);
 
         for (int k = 0; k < N; k++) {
             completionService.submit(() -> {
@@ -591,7 +573,6 @@ public class Main {
 
                     clone.add(i, excludedSourcePoint, excludedTargetPoint);
                 }
-//                Matrix looCovariance = (registrationError.getMatrix().transpose().times(registrationError.getMatrix())).times((double) 1 / (double) clone.getN());
                 Matrix looCovariance = covarianceMatrixComputer.compute(registrationError.getMatrix());
                 Percentile percentile = new Percentile();
                 percentile.setData(registrationErrorDistance);
@@ -633,9 +614,6 @@ public class Main {
                     );
                     ellipsesFromRegression[i].updateCounter(shape.contains(targetTestPoint.get(0), targetTestPoint.get(1)));
                     ellipsesFromRegression[i].updateArea(getEllipseArea(shape));
-
-                    image.draw(image.center(shape, new Point(new double[2])), Color.ORANGE);
-                    image.fill(image.center(getRectangle(targetTestPoint), new Point(new double[2])), Color.GREEN);
                 }
 
                 return null;
@@ -649,8 +627,6 @@ public class Main {
                 e.printStackTrace();
             }
         }
-
-        image.write(outputFilePath);
 
         System.out.println("i, %in, area, loo.cov.%in, loo.cov.area, loo.circle.%in, loo.circle.area");
         for(int i = 0; i < testSourceDataset.getN(); i++) {
