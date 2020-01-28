@@ -3,7 +3,6 @@ package fr.univ_nantes.stats.model_deviation;
 import Jama.Matrix;
 import fr.univ_nantes.stats.model_deviation.model.ShapeEllipseFactory;
 import fr.univ_nantes.stats.model_deviation.model.truth.isotropic.TrueModelConfidenceEllipseFactory;
-import fr.univ_nantes.stats.model_deviation.DaggerMainComponent;
 import icy.sequence.DimensionId;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
@@ -16,15 +15,16 @@ import java.awt.Rectangle;
 import java.awt.Color;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.concurrent.*;
-
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import plugins.fr.univ_nantes.ec_clem.error.CovarianceMatrixComputer;
 import plugins.fr.univ_nantes.ec_clem.error.ellipse.ConfidenceEllipseFactory;
+import plugins.fr.univ_nantes.ec_clem.error.ellipse.CovarianceEstimatorFactory;
 import plugins.fr.univ_nantes.ec_clem.error.likelihood_ratio.LikelihoodRatioTest;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
+import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.Dataset;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
 import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
@@ -32,16 +32,15 @@ import plugins.fr.univ_nantes.ec_clem.registration.AffineRegistrationParameterCo
 import plugins.fr.univ_nantes.ec_clem.registration.RegistrationParameter;
 import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+import plugins.fr.univ_nantes.ec_clem.roi.PointType;
 import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
 import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
 import plugins.fr.univ_nantes.ec_clem.transformation.AffineTransformation;
+import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
 import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.NoiseModel;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationSchema;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
-
-import static java.lang.Double.max;
 
 @Command(
     name = "model_deviation",
@@ -61,6 +60,15 @@ public class Main {
     private ConfidenceEllipseFactory confidenceEllipseFactory;
     private ShapeEllipseFactory shapeEllipseFactory;
     private TrueModelConfidenceEllipseFactory trueModelConfidenceEllipseFactory;
+    private CovarianceEstimatorFactory covarianceEstimatorFactory;
+    private RegistrationParameterFactory registrationParameterFactory;
+
+    private DatasetToCsvWriter datasetToCsvWriter;
+    private CsvToDatasetFileReader csvToDatasetFileReader;
+    private MatrixToCsvWriter matrixToCsvWriter;
+    private CsvToMatrixFileReader csvToMatrixFileReader;
+
+    private CovarianceMatrixComputer covarianceMatrixComputer;
 
     @Option(
         names = { "-n" },
@@ -91,14 +99,28 @@ public class Main {
     private int height;
 
     @Option(
-        names = {"-m", "--model"},
+        names = {"--transformation-model"},
         description = "Transformation model.\nValid values : ${COMPLETION-CANDIDATES}.\nDefault : ${DEFAULT-VALUE}.",
+        defaultValue = "RIGID"
+    )
+    private TransformationType transformationModel;
+
+    @Option(
+        names = {"--noise-model"},
+        description = "Noise model.\nValid values : ${COMPLETION-CANDIDATES}.\nDefault : ${DEFAULT-VALUE}.",
+        defaultValue = "ISOTROPIC"
+    )
+    private NoiseModel noiseModel;
+
+    @Option(
+        names = {"--transformation"},
+        description = "Transformation type.\nValid values : ${COMPLETION-CANDIDATES}.\nDefault : ${DEFAULT-VALUE}.",
         defaultValue = "RIGID"
     )
     private TransformationType transformationType;
 
     @Option(
-        names = "-S",
+        names = "--noise-covariance",
         description = "Noise covariance matrix.\nDefault : ${DEFAULT-VALUE}.",
         arity = "4"
     )
@@ -108,7 +130,7 @@ public class Main {
         DaggerMainComponent.create().inject(this);
     }
 
-    private Transformation getRandomTransformation(TransformationType transformationType) {
+    private AffineTransformation getRandomTransformation(TransformationType transformationType) {
         switch (transformationType) {
             case RIGID: return testTransformationFactory.getRandomSimpleRotationTransformation(2);
             case SIMILARITY: return testTransformationFactory.getRandomSimpleSimilarityTransformation2D();
@@ -149,8 +171,7 @@ public class Main {
                 zSource,
                 new TransformationSchema(current, TransformationType.AFFINE, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
                 alpha
-            ),
-            height
+            )
         );
         image.draw(image.center(affineEllipse, zTargetWithoutNoise), Color.BLUE);
         image.fill(image.center(getRectangle(affineTransformationComputer.compute(current).getTransformation().apply(zSource)), zTargetWithoutNoise), Color.BLUE);
@@ -160,8 +181,7 @@ public class Main {
                 zSource,
                 new TransformationSchema(current, TransformationType.RIGID, NoiseModel.ISOTROPIC, getSequenceSize(), getSequenceSize()),
                 alpha
-            ),
-            height
+            )
         );
         image.draw(image.center(rigidEllipse, zTargetWithoutNoise), Color.ORANGE);
         image.fill(image.center(getRectangle(rigidTransformationComputer.compute(current).getTransformation().apply(zSource)), zTargetWithoutNoise), Color.ORANGE);
@@ -178,8 +198,7 @@ public class Main {
 //        image.fill(image.center(getRectangle(anisotripicRigidTransformationComputer.compute(current).getTransformation().apply(zSource)), zTargetWithoutNoise), Color.CYAN);
 
         Shape trueEllipse = shapeEllipseFactory.getFrom(
-            trueModelConfidenceEllipseFactory.getFrom(zTargetWithoutNoise, current, noiseCovariance, alpha),
-            height
+            trueModelConfidenceEllipseFactory.getFrom(zTargetWithoutNoise, current, noiseCovariance, alpha)
         );
         image.draw(image.center(trueEllipse, zTargetWithoutNoise), Color.WHITE);
         image.fill(image.center(getRectangle(zTargetWithoutNoise), zTargetWithoutNoise), Color.WHITE);
@@ -188,7 +207,8 @@ public class Main {
     }
 
     private Rectangle getRectangle(Point point) {
-        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 5, 5);
+//        return new Rectangle((int) point.get(0), (int) (height - point.get(1)), 5, 5);
+        return new Rectangle((int) point.get(0), (int) (point.get(1)), 5, 5);
     }
 
     private SequenceSize getSequenceSize() {
@@ -203,7 +223,7 @@ public class Main {
         @Option(
             names = { "-N" },
             description = "Number of iterrations. Default : ${DEFAULT-VALUE}.",
-            defaultValue = "1000000"
+            defaultValue = "10000"
         ) int N
     ) {
         int[] range = new int[]{width, height};
@@ -215,13 +235,15 @@ public class Main {
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()
         ));
 
+        Transformation simpleRotationTransformation = getRandomTransformation(transformationType);
+        Dataset sourceDatset = getUniformConfiguration(n, range);
+        Dataset targetDataset = simpleRotationTransformation.apply(sourceDatset);
+        final FiducialSet fiducialSet = new FiducialSet(sourceDatset, targetDataset);
+        Point zSource = testFiducialSetFactory.getRandomPoint(range);
+
         for (int i = 0; i < N; i++) {
             completionService.submit(() -> {
-                Transformation simpleRotationTransformation = getRandomTransformation(transformationType);
-                Point zSource = testFiducialSetFactory.getRandomPoint(range);
-                FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
-                    simpleRotationTransformation, n, range
-                );
+                FiducialSet current = fiducialSet.clone();
                 testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
                 Point zTarget = testFiducialSetFactory.addGaussianNoise(simpleRotationTransformation.apply(zSource), noiseCovariance);
                 Shape affineEllipse = shapeEllipseFactory.getFrom(
@@ -229,58 +251,39 @@ public class Main {
                         zSource,
                         new TransformationSchema(current, TransformationType.AFFINE, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
                         alpha
-                    ),
-                    height
+                    )
                 );
                 Shape rigidEllipse = shapeEllipseFactory.getFrom(
                     confidenceEllipseFactory.getFrom(
                         zSource,
                         new TransformationSchema(current, TransformationType.RIGID, NoiseModel.ISOTROPIC, getSequenceSize(), getSequenceSize()),
                         alpha
-                    ),
-                    height
+                    )
                 );
-                Shape anisotropicRigidEllipse = shapeEllipseFactory.getFrom(
-                    confidenceEllipseFactory.getFrom(
-                        zSource,
-                        new TransformationSchema(current, TransformationType.RIGID, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
-                        alpha
-                    ),
-                    height
-                );
+//                Shape anisotropicRigidEllipse = shapeEllipseFactory.getFrom(
+//                    confidenceEllipseFactory.getFrom(
+//                        zSource,
+//                        new TransformationSchema(current, TransformationType.RIGID, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
+//                        alpha
+//                    ),
+//                    height
+//                );
                 Shape trueEllipse = shapeEllipseFactory.getFrom(
-                    trueModelConfidenceEllipseFactory.getFrom(simpleRotationTransformation.apply(zSource), current, noiseCovariance, alpha),
-                    height
+                    trueModelConfidenceEllipseFactory.getFrom(simpleRotationTransformation.apply(zSource), current, noiseCovariance, alpha)
                 );
                 return new SimulationResult(
                     affineEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
                     rigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
-                    anisotropicRigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
+//                    anisotropicRigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
+                    false,
                     trueEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1))),
                     getEllipseArea(affineEllipse),
                     getEllipseArea(rigidEllipse),
-                    getEllipseArea(anisotropicRigidEllipse),
+//                    getEllipseArea(anisotropicRigidEllipse),
+                    0,
                     getEllipseArea(trueEllipse)
                 );
             });
-
-//            if (affineEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1)))) {
-//                affineCounter++;
-//            }
-//            if (rigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1)))) {
-//                rigidCounter++;
-//            }
-//            if (anisotropicRigidEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1)))) {
-//                anisotropicRigidCounter++;
-//            }
-//            if (trueEllipse.contains(zTarget.get(0), (int) (height - zTarget.get(1)))) {
-//                trueCounter++;
-//            }
-
-//            affineArea += getEllipseArea(affineEllipse);
-//            rigidArea += getEllipseArea(rigidEllipse);
-//            anisotropicRigidArea += getEllipseArea(anisotropicRigidEllipse);
-//            trueArea += getEllipseArea(trueEllipse);
         }
 
         int affineCounter = 0;
@@ -326,14 +329,14 @@ public class Main {
             stat.addValue(end - start);
         }
 
-        System.out.println(String.format("Affine model : %.3f %%", (double) affineCounter / N * 100));
-        System.out.println(String.format("Affine area : %.3f", affineArea.getResult()));
-        System.out.println(String.format("Rigid isotropic model : %.3f %%", (double) rigidCounter / N * 100));
-        System.out.println(String.format("Rigid isotropic area : %.3f", rigidArea.getResult()));
-        System.out.println(String.format("Rigid anisotropic model : %.3f %%", (double) anisotropicRigidCounter / N * 100));
-        System.out.println(String.format("Rigid anisotropic area : %.3f", anisotropicRigidArea.getResult()));
-        System.out.println(String.format("True model : %.3f %%", (double) trueCounter / N * 100));
-        System.out.println(String.format("True area : %.3f", trueArea.getResult()));
+        System.out.println(String.format("Affine model : %.4f %%", (double) affineCounter / N * 100));
+        System.out.println(String.format("Affine area : %.4f", affineArea.getResult()));
+        System.out.println(String.format("Rigid isotropic model : %.4f %%", (double) rigidCounter / N * 100));
+        System.out.println(String.format("Rigid isotropic area : %.4f", rigidArea.getResult()));
+        System.out.println(String.format("Rigid anisotropic model : %.4f %%", (double) anisotropicRigidCounter / N * 100));
+        System.out.println(String.format("Rigid anisotropic area : %.4f", anisotropicRigidArea.getResult()));
+        System.out.println(String.format("True model : %.4f %%", (double) trueCounter / N * 100));
+        System.out.println(String.format("True area : %.4f", trueArea.getResult()));
     }
 
     private double getEllipseArea(Shape shape) {
@@ -422,69 +425,243 @@ public class Main {
                 likelihoodRatioTest.test(5, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
             )
         );
-}
+    }
+
+    private Dataset getUniformConfiguration(int n, int[] range) {
+        Dataset dataset = new Dataset(range.length, PointType.FIDUCIAL);
+        for(int i = 0; i < n; i++) {
+            dataset.addPoint(testFiducialSetFactory.getRandomPoint(range));
+        }
+        return dataset;
+    }
+
+    private Dataset getGaussianConfiguration(int n, int[] range, double[][] configurationCovariance) {
+        Point center = new Point(Arrays.stream(range).mapToDouble((i) -> (double) i / 2).toArray());
+        Dataset dataset = new Dataset(range.length, PointType.FIDUCIAL);
+        while(dataset.getN() < n) {
+            Point newPoint = testFiducialSetFactory.addGaussianNoise(center, configurationCovariance);
+            if(isPointInRange(newPoint, range)) {
+                dataset.addPoint(newPoint);
+            }
+        }
+        return dataset;
+    }
+
+    private boolean isPointInRange(Point point, int[] range) {
+        boolean isNewPointInRange = true;
+        for(int i = 0; i < range.length; i++) {
+            isNewPointInRange = isNewPointInRange && (point.get(i) >= 0 && point.get(i) <= range[i]);
+        }
+        return isNewPointInRange;
+    }
 
     @Command
-    public void leaveOneOut() {
+    public void generateUniformDataset() {
         int[] range = new int[]{width, height};
-        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
+        Dataset dataset = getUniformConfiguration(n, range);
+        System.out.println(datasetToCsvWriter.write(dataset));
+    }
 
-        AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
-        simpleRotationTransformation.getHomogeneousMatrix().print(1,5);
+    @Command
+    public void generateOutlierDataset(
+        @Option(
+            names = "--fiducial-configuration-covariance",
+            description = "Configuration covariance matrix.\nDefault : ${DEFAULT-VALUE}.",
+            arity = "4"
+        )
+            double[] configurationCovarianceValues
+    ) {
+        int[] range = new int[]{width, height};
+        double[][] configurationCovariance = new Matrix(configurationCovarianceValues, range.length).getArray();
+        Dataset dataset = getGaussianConfiguration(n, range, configurationCovariance);
+        System.out.println(datasetToCsvWriter.write(dataset));
+    }
 
-        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
-            simpleRotationTransformation, n, range
-        );
-        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
+    @Command
+    public void generateTransformation(
+        @Option(
+            names = {"--transformation"},
+            description = "Transformation type.\nValid values : ${COMPLETION-CANDIDATES}.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "RIGID"
+        ) TransformationType transformationType
+    ) {
+        AffineTransformation transformation = getRandomTransformation(transformationType);
+        System.out.println(matrixToCsvWriter.write(transformation.getHomogeneousMatrix()));
+    }
 
-        double[] distanceList = new double[current.getN()];
-        double[] predictedDistanceList = new double[current.getN()];
-        double[] predictedAreaList = new double[current.getN()];
-        for(int i = 0; i < current.getN(); i++) {
-            FiducialSet clone = current.clone();
-            Point excludedSource = clone.getSourceDataset().getPoint(i);
-            Point excludedTarget = clone.getTargetDataset().getPoint(i);
-            clone.remove(i);
-
-//            RegistrationParameter compute = anisotripicRigidTransformationComputer.compute(clone);
-            RegistrationParameter compute = affineTransformationComputer.compute(clone);
-            Point predictedTarget = compute.getTransformation().apply(excludedSource);
-            double distance = excludedTarget.getDistance(predictedTarget);
-
-            Shape ellipse = shapeEllipseFactory.getFrom(
-                confidenceEllipseFactory.getFrom(
-                    excludedSource,
-                    new TransformationSchema(clone, TransformationType.AFFINE, NoiseModel.ANISOTROPIC, getSequenceSize(), getSequenceSize()),
-                    alpha
-                ),
-                height
-            );
-            double predictedDistance = max(ellipse.getBounds2D().getWidth(), ellipse.getBounds2D().getHeight()) / 2d;
-            double predictedArea = Math.PI * ellipse.getBounds2D().getWidth() / 2d * ellipse.getBounds2D().getHeight() / 2d;
-            distanceList[i] = distance;
-            predictedDistanceList[i] = predictedDistance;
-            predictedAreaList[i] = predictedArea;
-//            System.out.println(String.format("Observed: %f, predicted: %f, predicted area: %f", distance, predictedDistance, predictedArea));
+    @Command
+    public void generateImageFromCsv(
+        @Option(
+            names = {"-i", "--input"},
+            description = "Input file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./source.csv"
+        ) Path inputFilePath,
+        @Option(
+            names = {"-o", "--output"},
+            description = "Output file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./image.png"
+        ) Path outputFilePath
+    ) {
+        Dataset sourceDataset = csvToDatasetFileReader.read(inputFilePath.toFile());
+        Image image = new Image(width, height);
+        for(int i = 0; i < sourceDataset.getN(); i++) {
+            image.fill(getRectangle(sourceDataset.getPoint(i)), Color.GREEN);
         }
-        Percentile percentile = new Percentile();
-        percentile.setData(distanceList);
-        Percentile predictedDistancePercentile = new Percentile();
-        predictedDistancePercentile.setData(predictedDistanceList);
-        Percentile predictedAreaListPercentile = new Percentile();
-        predictedAreaListPercentile.setData(predictedAreaList);
+        image.write(outputFilePath);
+    }
 
-        System.out.println(String.format("50%%: observed error: %f, observed area: %f", percentile.evaluate(50), Math.PI * percentile.evaluate(50) * percentile.evaluate(50)));
-        System.out.println(String.format("80%%: observed error: %f, observed area: %f", percentile.evaluate(80), Math.PI * percentile.evaluate(80) * percentile.evaluate(80)));
-        System.out.println(String.format("95%%: observed error: %f, observed area: %f", percentile.evaluate(95), Math.PI * percentile.evaluate(95) * percentile.evaluate(95)));
-        System.out.println(String.format("99%%: observed error: %f, observed area: %f", percentile.evaluate(99), Math.PI * percentile.evaluate(99) * percentile.evaluate(99)));
-        System.out.println(String.format("100%%: observed error: %f, observed area: %f", percentile.evaluate(100), Math.PI * percentile.evaluate(100) * percentile.evaluate(100)));
+    @Command
+    public void leaveOneOutSimulation(
+        @Option(
+            names = { "-N" },
+            description = "Number of iterrations. Default : ${DEFAULT-VALUE}.",
+            defaultValue = "1000"
+        ) int N,
+        @Option(
+            names = {"--transformation"},
+            description = "Input transformation file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./transformation.csv"
+        ) Path transformationFilePath,
+        @Option(
+            names = {"--source-dataset"},
+            description = "Input source dataset file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./source_dataset.csv"
+        ) Path sourceDatasetFilePath,
+        @Option(
+            names = {"-o", "--output"},
+            description = "Output file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./image.png"
+        ) Path outputFilePath
+    ) {
+        int[] range = new int[]{width, height};
 
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, range.length).getArray();
+        CompletionService<Void> completionService = new ExecutorCompletionService<>(
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+        );
+        AffineTransformation transformation = new AffineTransformation(csvToMatrixFileReader.read(transformationFilePath.toFile()));
+        Dataset sourceDataset = csvToDatasetFileReader.read(sourceDatasetFilePath.toFile());
+        Dataset targetDataset = transformation.apply(sourceDataset);
+        final FiducialSet fiducialSet = new FiducialSet(sourceDataset, targetDataset);
 
-        System.out.println(String.format("50%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(50), predictedAreaListPercentile.evaluate(50)));
-        System.out.println(String.format("80%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(80), predictedAreaListPercentile.evaluate(80)));
-        System.out.println(String.format("95%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(95), predictedAreaListPercentile.evaluate(95)));
-        System.out.println(String.format("99%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(99), predictedAreaListPercentile.evaluate(99)));
-        System.out.println(String.format("100%%: predicted error %f, predicted area: %f", predictedDistancePercentile.evaluate(100), predictedAreaListPercentile.evaluate(100)));
+        Dataset testSourceDataset = new Dataset(range.length, PointType.NOT_FIDUCIAL);
+        testSourceDataset.addPoint(new Point(new double[] { (double) width / 2, (double) height / 2 }));
+        testSourceDataset.addPoint(new Point(new double[] { 0, 0 }));
+        testSourceDataset.addPoint(new Point(new double[] { width, height }));
+        testSourceDataset.addPoint(new Point(new double[] { -width, -height }));
+        testSourceDataset.addPoint(new Point(new double[] { 0, height }));
+        testSourceDataset.addPoint(new Point(new double[] { 0, height * 2 }));
+        testSourceDataset.addPoint(new Point(new double[] { width, 0 }));
+        testSourceDataset.addPoint(new Point(new double[] { width * 2, 0 }));
+        testSourceDataset.addPoint(new Point(new double[] { width * 2, height * 2 }));
+        Dataset testTargetDataset = transformation.apply(testSourceDataset);
+
+        ShapeStat[] ellipsesFromRegression = new ShapeStat[testTargetDataset.getN()];
+        ShapeStat[] ellipsesFromLoo = new ShapeStat[testTargetDataset.getN()];
+        ShapeStat[] disksFromLoo = new ShapeStat[testTargetDataset.getN()];
+        for(int i = 0; i < testTargetDataset.getN(); i++) {
+            ellipsesFromRegression[i] = new ShapeStat();
+            ellipsesFromLoo[i] = new ShapeStat();
+            disksFromLoo[i] = new ShapeStat();
+        }
+
+        Image image = new Image(width * 8, height * 8);
+
+        for (int k = 0; k < N; k++) {
+            completionService.submit(() -> {
+                FiducialSet clone = fiducialSet.clone();
+                testFiducialSetFactory.addGaussianNoise(clone.getTargetDataset(), noiseCovariance);
+
+                Dataset testClone = testTargetDataset.clone();
+                testFiducialSetFactory.addGaussianNoise(testClone, noiseCovariance);
+
+                Dataset registrationError = new Dataset(range.length, PointType.ERROR);
+                double[] registrationErrorDistance = new double[clone.getN()];
+
+                for(int i = 0; i < clone.getN(); i++) {
+                    Point excludedSourcePoint = clone.getSourceDataset().getPoint(i);
+                    Point excludedTargetPoint = clone.getTargetDataset().getPoint(i);
+                    clone.remove(i);
+
+                    TransformationSchema transformationSchema = new TransformationSchema(clone, transformationModel, noiseModel, getSequenceSize(), getSequenceSize());
+                    RegistrationParameter compute = registrationParameterFactory.getFrom(transformationSchema);
+                    Point predictedExcludedTargetPoint = compute.getTransformation().apply(excludedSourcePoint);
+                    registrationError.addPoint(excludedTargetPoint.minus(predictedExcludedTargetPoint));
+                    registrationErrorDistance[i] = excludedTargetPoint.getDistance(predictedExcludedTargetPoint);
+
+                    clone.add(i, excludedSourcePoint, excludedTargetPoint);
+                }
+//                Matrix looCovariance = (registrationError.getMatrix().transpose().times(registrationError.getMatrix())).times((double) 1 / (double) clone.getN());
+                Matrix looCovariance = covarianceMatrixComputer.compute(registrationError.getMatrix());
+                Percentile percentile = new Percentile();
+                percentile.setData(registrationErrorDistance);
+                double evaluate = percentile.evaluate(alpha * 100);
+
+                TransformationSchema transformationSchema = new TransformationSchema(clone, transformationModel, noiseModel, getSequenceSize(), getSequenceSize());
+                RegistrationParameter compute = registrationParameterFactory.getFrom(transformationSchema);
+
+                for(int i = 0; i < testClone.getN(); i++) {
+                    Point sourceTestPoint = testSourceDataset.getPoint(i);
+                    Point targetTestPoint = testClone.getPoint(i);
+                    Point predictedTargetPoint = compute.getTransformation().apply(sourceTestPoint);
+
+                    Shape ellipseLoo = shapeEllipseFactory.getFrom(
+                        confidenceEllipseFactory.getFrom(
+                            predictedTargetPoint,
+                            clone,
+                            looCovariance,
+                            alpha
+                        )
+                    );
+                    ellipsesFromLoo[i].updateCounter(ellipseLoo.contains(targetTestPoint.get(0),  targetTestPoint.get(1)));
+                    ellipsesFromLoo[i].updateArea(getEllipseArea(ellipseLoo));
+
+                    Shape diskLoo = shapeEllipseFactory.getFrom(
+                        predictedTargetPoint,
+                        evaluate
+                    );
+                    disksFromLoo[i].updateCounter(diskLoo.contains(targetTestPoint.get(0), targetTestPoint.get(1)));
+                    disksFromLoo[i].updateArea(getEllipseArea(diskLoo));
+
+                    Shape shape = shapeEllipseFactory.getFrom(
+                        confidenceEllipseFactory.getFrom(
+                            predictedTargetPoint,
+                            clone,
+                            covarianceEstimatorFactory.getFrom(transformationModel).getCovariance(transformationSchema, sourceTestPoint),
+                            alpha
+                        )
+                    );
+                    ellipsesFromRegression[i].updateCounter(shape.contains(targetTestPoint.get(0), targetTestPoint.get(1)));
+                    ellipsesFromRegression[i].updateArea(getEllipseArea(shape));
+
+                    image.draw(image.center(shape, new Point(new double[2])), Color.ORANGE);
+                    image.fill(image.center(getRectangle(targetTestPoint), new Point(new double[2])), Color.GREEN);
+                }
+
+                return null;
+            });
+
+        }
+        for(int k = 0; k < N; k++) {
+            try {
+                Void take = completionService.take().get();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        image.write(outputFilePath);
+
+        System.out.println("i, %in, area, loo.cov.%in, loo.cov.area, loo.circle.%in, loo.circle.area");
+        for(int i = 0; i < testSourceDataset.getN(); i++) {
+            System.out.println(String.format(
+                "%d, %f, %f, %f, %f, %f, %f",
+                i,
+                ellipsesFromRegression[i].getRatio(), ellipsesFromRegression[i].getArea(),
+                ellipsesFromLoo[i].getRatio(), ellipsesFromLoo[i].getArea(),
+                disksFromLoo[i].getRatio(), disksFromLoo[i].getArea()
+            ));
+        }
     }
 
     public static void main(String ... args) {
@@ -535,5 +712,40 @@ public class Main {
     @Inject
     public void setIsotropicConfidenceEllipseFactory(TrueModelConfidenceEllipseFactory trueModelConfidenceEllipseFactory) {
         this.trueModelConfidenceEllipseFactory = trueModelConfidenceEllipseFactory;
+    }
+
+    @Inject
+    public void setCovarianceEstimatorFactory(CovarianceEstimatorFactory covarianceEstimatorFactory) {
+        this.covarianceEstimatorFactory = covarianceEstimatorFactory;
+    }
+
+    @Inject
+    public void setRegistrationParameterFactory(RegistrationParameterFactory registrationParameterFactory) {
+        this.registrationParameterFactory = registrationParameterFactory;
+    }
+
+    @Inject
+    public void setDatasetToCsvFileWriter(DatasetToCsvWriter datasetToCsvWriter) {
+        this.datasetToCsvWriter = datasetToCsvWriter;
+    }
+
+    @Inject
+    public void setCsvToDatasetFileReader(CsvToDatasetFileReader csvToDatasetFileReader) {
+        this.csvToDatasetFileReader = csvToDatasetFileReader;
+    }
+
+    @Inject
+    public void setMatrixToCsvWriter(MatrixToCsvWriter matrixToCsvWriter) {
+        this.matrixToCsvWriter = matrixToCsvWriter;
+    }
+
+    @Inject
+    public void setCsvToMatrixFileReader(CsvToMatrixFileReader csvToMatrixFileReader) {
+        this.csvToMatrixFileReader = csvToMatrixFileReader;
+    }
+
+    @Inject
+    public void setCovarianceMatrixComputer(CovarianceMatrixComputer covarianceMatrixComputer) {
+        this.covarianceMatrixComputer = covarianceMatrixComputer;
     }
 }
