@@ -1,12 +1,10 @@
-package test.plugins.perrine.easyclemv0.registration;
+package test.fr.univ_nantes.ec_clem.registration;
 
-import fr.univ_nantes.ipopt.fixtures.HS071;
 import org.coinor.Ipopt;
-import org.junit.jupiter.api.Test;
+import org.testng.annotations.Test;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
-
 import javax.inject.Inject;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class IpoptTest {
 
@@ -23,7 +21,7 @@ public class IpoptTest {
 
     @Test
     void testExample() {
-        HS071 hs071 = new HS071();
+        fr.univ_nantes.ipopt.fixtures.HS071 hs071 = new fr.univ_nantes.ipopt.fixtures.HS071();
         int status = hs071.OptimizeNLP();
         assertEquals(Ipopt.SOLVE_SUCCEEDED, status);
     }

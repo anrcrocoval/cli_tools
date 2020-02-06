@@ -1,4 +1,4 @@
-package test.plugins.perrine.easyclemv0.registration;
+package test.fr.univ_nantes.ec_clem.registration;
 
 import dagger.Component;
 

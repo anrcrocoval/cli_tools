@@ -9,11 +9,11 @@ import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
 import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
 import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
+import fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.conjugate_gradient.ConjugateGradientRigid2DGeneralMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.transformation.Similarity;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
+import fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.interior_point.InteriorPointRigid2DGeneralMaxLikelihoodComputer;
+import fr.univ_nantes.ec_clem.registration.likelihood.dimension2.isotropic.interior_point.InteriorPointRigid2DIsotropicMaxLikelihoodComputer;
 
 @Command(
     name = "solver",

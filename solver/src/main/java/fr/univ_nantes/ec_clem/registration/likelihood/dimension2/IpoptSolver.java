@@ -1,15 +1,13 @@
-package plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2;
+package fr.univ_nantes.ec_clem.registration.likelihood.dimension2;
 
 import org.coinor.Ipopt;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.BaseOptimProblem;
-
-import java.util.concurrent.ExecutionException;
+import fr.univ_nantes.ec_clem.registration.likelihood.dimension2.general.OptimProblem;
 
 public class IpoptSolver extends Ipopt {
 
-    private BaseOptimProblem optimProblem;
+    private OptimProblem optimProblem;
 
-    public IpoptSolver(BaseOptimProblem optimProblem) {
+    public IpoptSolver(OptimProblem optimProblem) {
         this.optimProblem = optimProblem;
         create(
             optimProblem.getNParameters(),
@@ -18,10 +16,9 @@ public class IpoptSolver extends Ipopt {
             optimProblem.getNonZeroElementsInParametersHessian(),
             Ipopt.C_STYLE
         );
-        this.setIntegerOption("max_iter", 500);
-        this.setStringOption("ma57_automatic_scaling", "yes");
-        this.setNumericOption("tol", 1e-16);
-        this.setNumericOption("acceptable_tol", 1e-15);
+        this.setIntegerOption("max_iter", 5000);
+        this.setNumericOption("tol", 1e-25);
+        this.setNumericOption("acceptable_tol", 1e-25);
         this.setNumericOption("print_frequency_time", 0);
         this.setIntegerOption("print_frequency_iter", 1);
         this.setIntegerOption("print_level", 0);
@@ -58,12 +55,12 @@ public class IpoptSolver extends Ipopt {
 
     @Override
     protected boolean eval_grad_f(int n, double[] x, boolean new_x, double[] grad_f) {
-        try {
+//        try {
             double[] gradient = optimProblem.getObjectiveGradient(x);
             System.arraycopy(gradient, 0, grad_f, 0, gradient.length);
-        } catch (ExecutionException | InterruptedException e) {
-            e.printStackTrace();
-        }
+//        } catch (ExecutionException | InterruptedException e) {
+//            e.printStackTrace();
+//        }
         return true;
     }
 
@@ -106,7 +103,7 @@ public class IpoptSolver extends Ipopt {
 
             assert idx == nele_hess;
         } else {
-            try {
+//            try {
                 double[] hessian = optimProblem.getObjectiveHessian(x);
                 double[][] constraintsHessian = optimProblem.getConstraintsHessian(x);
                 for(int i = 0; i < hessian.length; i++) {
@@ -115,9 +112,9 @@ public class IpoptSolver extends Ipopt {
                         values[i] += lambda[j] * constraintsHessian[j][i];
                     }
                 }
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+//            } catch (ExecutionException | InterruptedException e) {
+//                e.printStackTrace();
+//            }
         }
         return true;
     }
