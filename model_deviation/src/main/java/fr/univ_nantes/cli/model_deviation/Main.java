@@ -1,13 +1,12 @@
-package fr.univ_nantes.stats.model_deviation;
+package fr.univ_nantes.cli.model_deviation;
 
 import Jama.Matrix;
-import fr.univ_nantes.stats.model_deviation.model.ShapeEllipseFactory;
-import fr.univ_nantes.stats.model_deviation.model.truth.isotropic.TrueModelConfidenceEllipseFactory;
+import fr.univ_nantes.cli.model_deviation.model.ShapeEllipseFactory;
+import fr.univ_nantes.cli.model_deviation.model.truth.isotropic.TrueModelConfidenceEllipseFactory;
 import icy.sequence.DimensionId;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import picocli.CommandLine;
 import javax.inject.Inject;
-import javax.inject.Named;
 import java.awt.Shape;
 import java.awt.Rectangle;
 import java.awt.Color;
@@ -35,6 +34,7 @@ import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterCom
 import plugins.fr.univ_nantes.ec_clem.roi.PointType;
 import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
 import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
+import plugins.fr.univ_nantes.ec_clem.storage.*;
 import plugins.fr.univ_nantes.ec_clem.transformation.AffineTransformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
 import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
@@ -61,9 +61,9 @@ public class Main {
     private CovarianceEstimatorFactory covarianceEstimatorFactory;
     private RegistrationParameterFactory registrationParameterFactory;
 
-    private DatasetToCsvWriter datasetToCsvWriter;
+    private DatasetToCsvFormatter datasetToCsvFormatter;
     private CsvToDatasetFileReader csvToDatasetFileReader;
-    private MatrixToCsvWriter matrixToCsvWriter;
+    private TransformationToCsvFormatter transformationToCsvFormatter;
     private CsvToMatrixFileReader csvToMatrixFileReader;
 
     private CovarianceMatrixComputer covarianceMatrixComputer;
@@ -289,7 +289,7 @@ public class Main {
     public void generateUniformDataset() {
         int[] range = new int[]{width, height};
         Dataset dataset = getUniformConfiguration(n, range);
-        System.out.println(datasetToCsvWriter.write(dataset));
+        System.out.println(datasetToCsvFormatter.format(dataset));
     }
 
     @Command
@@ -303,7 +303,7 @@ public class Main {
         int[] range = new int[]{width, height};
         double[][] configurationCovariance = new Matrix(configurationCovarianceValues, range.length).getArray();
         Dataset dataset = getGaussianConfiguration(n, range, configurationCovariance);
-        System.out.println(datasetToCsvWriter.write(dataset));
+        System.out.println(datasetToCsvFormatter.format(dataset));
     }
 
     @Command
@@ -318,7 +318,7 @@ public class Main {
         testSourceDataset.addPoint(new Point(new double[] { width * 2, 0 }));
         testSourceDataset.addPoint(new Point(new double[] { 0, height * 2 }));
         testSourceDataset.addPoint(new Point(new double[] { width * 2, height * 2 }));
-        System.out.println(datasetToCsvWriter.write(testSourceDataset));
+        System.out.println(datasetToCsvFormatter.format(testSourceDataset));
     }
 
     @Command
@@ -329,8 +329,8 @@ public class Main {
             defaultValue = "RIGID"
         ) TransformationType transformationType
     ) {
-        AffineTransformation transformation = getRandomTransformation(transformationType);
-        System.out.println(matrixToCsvWriter.write(transformation.getHomogeneousMatrix()));
+        Transformation transformation = getRandomTransformation(transformationType);
+        System.out.println(transformationToCsvFormatter.format(transformation));
     }
 
     @Command
@@ -576,8 +576,8 @@ public class Main {
     }
 
     @Inject
-    public void setDatasetToCsvFileWriter(DatasetToCsvWriter datasetToCsvWriter) {
-        this.datasetToCsvWriter = datasetToCsvWriter;
+    public void setDatasetToCsvFileFormatter(DatasetToCsvFormatter datasetToCsvFormatter) {
+        this.datasetToCsvFormatter = datasetToCsvFormatter;
     }
 
     @Inject
@@ -586,8 +586,8 @@ public class Main {
     }
 
     @Inject
-    public void setMatrixToCsvWriter(MatrixToCsvWriter matrixToCsvWriter) {
-        this.matrixToCsvWriter = matrixToCsvWriter;
+    public void setTransformationToCsvFormatter(TransformationToCsvFormatter transformationToCsvFormatter) {
+        this.transformationToCsvFormatter = transformationToCsvFormatter;
     }
 
     @Inject

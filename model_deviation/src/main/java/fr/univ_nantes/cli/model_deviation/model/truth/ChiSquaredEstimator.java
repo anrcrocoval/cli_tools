@@ -1,4 +1,4 @@
-package fr.univ_nantes.stats.model_deviation.model.truth;
+package fr.univ_nantes.cli.model_deviation.model.truth;
 
 import org.apache.commons.math3.distribution.ChiSquaredDistribution;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;

@@ -1,4 +1,4 @@
-package fr.univ_nantes.stats.model_deviation;
+package fr.univ_nantes.cli.model_deviation;
 
 public enum FiducialConfigurationType {
     UNIFORM,

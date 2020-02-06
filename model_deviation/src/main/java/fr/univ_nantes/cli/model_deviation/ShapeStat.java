@@ -1,4 +1,4 @@
-package fr.univ_nantes.stats.model_deviation;
+package fr.univ_nantes.cli.model_deviation;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;

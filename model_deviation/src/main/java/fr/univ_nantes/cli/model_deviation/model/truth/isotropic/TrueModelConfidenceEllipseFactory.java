@@ -1,8 +1,8 @@
-package fr.univ_nantes.stats.model_deviation.model.truth.isotropic;
+package fr.univ_nantes.cli.model_deviation.model.truth.isotropic;
 
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
-import fr.univ_nantes.stats.model_deviation.model.truth.ChiSquaredEstimator;
+import fr.univ_nantes.cli.model_deviation.model.truth.ChiSquaredEstimator;
 import plugins.fr.univ_nantes.ec_clem.error.ellipse.Ellipse;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;

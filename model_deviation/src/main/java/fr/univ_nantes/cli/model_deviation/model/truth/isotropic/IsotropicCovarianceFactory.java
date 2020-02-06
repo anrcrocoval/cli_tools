@@ -1,4 +1,4 @@
-package fr.univ_nantes.stats.model_deviation.model.truth.isotropic;
+package fr.univ_nantes.cli.model_deviation.model.truth.isotropic;
 
 import Jama.Matrix;
 import javax.inject.Inject;
