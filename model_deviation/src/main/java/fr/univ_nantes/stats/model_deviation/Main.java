@@ -31,7 +31,7 @@ import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformation
 import plugins.fr.univ_nantes.ec_clem.registration.AffineRegistrationParameterComputer;
 import plugins.fr.univ_nantes.ec_clem.registration.RegistrationParameter;
 import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
-import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
+//import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
 import plugins.fr.univ_nantes.ec_clem.roi.PointType;
 import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
 import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
@@ -54,7 +54,7 @@ public class Main {
     private AffineRegistrationParameterComputer affineTransformationComputer;
     private RigidRegistrationParameterComputer rigidTransformationComputer;
 
-    private Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer;
+//    private Rigid2DMaxLikelihoodComputer anisotripicRigidTransformationComputer;
     private ConfidenceEllipseFactory confidenceEllipseFactory;
     private ShapeEllipseFactory shapeEllipseFactory;
     private TrueModelConfidenceEllipseFactory trueModelConfidenceEllipseFactory;
@@ -227,26 +227,26 @@ public class Main {
 
         testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
 
-        RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
+//        RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
         RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
         RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
 
         LikelihoodRatioTest likelihoodRatioTest = new LikelihoodRatioTest();
-        System.out.println("Anisotropic rigid / Anisotropic affine");
-        System.out.println(
-            String.format(
-                "pvalue: %f",
-                likelihoodRatioTest.test(3, computeAnisotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
-            )
-        );
+//        System.out.println("Anisotropic rigid / Anisotropic affine");
+//        System.out.println(
+//            String.format(
+//                "pvalue: %f",
+//                likelihoodRatioTest.test(3, computeAnisotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+//            )
+//        );
 
-        System.out.println("Isotropic rigid (schonnemann) / Anisotropic rigid");
-        System.out.println(
-            String.format(
-                "pvalue: %f",
-                likelihoodRatioTest.test(2, computeRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
-            )
-        );
+//        System.out.println("Isotropic rigid (schonnemann) / Anisotropic rigid");
+//        System.out.println(
+//            String.format(
+//                "pvalue: %f",
+//                likelihoodRatioTest.test(2, computeRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
+//            )
+//        );
 
         System.out.println("Isotropic rigid (schonnemann) / Anisotropic affine");
         System.out.println(
@@ -545,10 +545,10 @@ public class Main {
         this.rigidTransformationComputer = rigidTransformationComputer;
     }
 
-    @Inject
-    public void setRigid2DGeneralMaxLikelihoodComputer(@Named("ipopt_general") Rigid2DMaxLikelihoodComputer solver) {
-        this.anisotripicRigidTransformationComputer = solver;
-    }
+//    @Inject
+//    public void setRigid2DGeneralMaxLikelihoodComputer(@Named("ipopt_general") Rigid2DMaxLikelihoodComputer solver) {
+//        this.anisotripicRigidTransformationComputer = solver;
+//    }
 
     @Inject
     public void setConfidenceEllipseFactory(ConfidenceEllipseFactory confidenceEllipseFactory) {
