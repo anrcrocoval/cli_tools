@@ -35,6 +35,10 @@ import plugins.fr.univ_nantes.ec_clem.roi.PointType;
 import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
 import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
 import plugins.fr.univ_nantes.ec_clem.storage.*;
+import plugins.fr.univ_nantes.ec_clem.storage.dataset.CsvToDatasetFileReader;
+import plugins.fr.univ_nantes.ec_clem.storage.dataset.DatasetToCsvFormatter;
+import plugins.fr.univ_nantes.ec_clem.storage.transformation.CsvToMatrixFileReader;
+import plugins.fr.univ_nantes.ec_clem.storage.transformation.TransformationToCsvFormatter;
 import plugins.fr.univ_nantes.ec_clem.transformation.AffineTransformation;
 import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
 import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
@@ -480,7 +484,7 @@ public class Main {
         }
 
         List<Point> list = pointFactory.getFrom(sourceDataset);
-        System.out.println("i, model, method, layout, n, %in, area.mean, area.sd, nearest");
+        System.out.println("i, model, method, n, %in, area.mean, area.sd, nearest");
         for(int i = 0; i < testSourceDataset.getN(); i++) {
             Point current = testSourceDataset.getPoint(i);
             double distance = current.getDistance(current.getNearest(list));
@@ -495,20 +499,20 @@ public class Main {
                 ellipsesFromRegression[i].getAreaSd(),
                 distance
             ));
+//            System.out.println(String.format(
+//                Locale.US,
+//                "%d, \"%s\", \"loo_cov\", %d, %f, %f, %f, %f",
+//                i,
+//                transformationModel,
+//                fiducialSet.getN(),
+//                ellipsesFromLoo[i].getRatio() * 100,
+//                ellipsesFromLoo[i].getArea(),
+//                ellipsesFromLoo[i].getAreaSd(),
+//                distance
+//            ));
             System.out.println(String.format(
                 Locale.US,
-                "%d, \"%s\", \"loo_cov\", %d, %f, %f, %f, %f",
-                i,
-                transformationModel,
-                fiducialSet.getN(),
-                ellipsesFromLoo[i].getRatio() * 100,
-                ellipsesFromLoo[i].getArea(),
-                ellipsesFromLoo[i].getAreaSd(),
-                distance
-            ));
-            System.out.println(String.format(
-                Locale.US,
-                "%d, \"%s\", \"loo_disk\", %d, %f, %f, %f, %f",
+                "%d, \"%s\", \"leave_one_out\", %d, %f, %f, %f, %f",
                 i,
                 transformationModel,
                 fiducialSet.getN(),

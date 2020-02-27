@@ -41,7 +41,7 @@ likelihood_ratio_n1000_affine:
 	$(EXEC) --noise-covariance 100 0 0 100 --transformation AFFINE -n 1000 likelihood > $@
 
 clean:
-	rm -f result_* sourceDataset_* likelihood_ratio_* testSourceDataset.csv
+	rm -f -- result_* sourceDataset_* likelihood_ratio_* testSourceDataset.csv sourceDataset_* RIGID.csv AFFINE.csv SIMILARITY.csv
 
 reset: clean all
 
