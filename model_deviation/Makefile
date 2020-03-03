@@ -1,7 +1,8 @@
 EXEC = java -jar target/model_deviation-1.0-SNAPSHOT.jar
 LIST_OF_N = 10 25 100
 LIST_OF_TRANSFORMATIONS = RIGID AFFINE
-LIST_OF_LAYOUTS = uniform gaussian
+# LIST_OF_LAYOUTS = uniform gaussian
+LIST_OF_LAYOUTS = gaussian
 
 define UNIFORM_SOURCE_DATASET_RULE
 sourceDataset_n$(1)_uniform.csv:
@@ -29,13 +30,16 @@ endef
 
 RESULT_FILES = $(foreach model,$(LIST_OF_TRANSFORMATIONS),$(foreach transformation,$(LIST_OF_TRANSFORMATIONS),$(foreach n,$(LIST_OF_N),$(foreach layout,$(LIST_OF_LAYOUTS),$(call RESULT_NAME,$(model),$(transformation),$(n),$(layout))))))
 
-all: $(RESULT_FILES)
+all: $(RESULT_FILES) layout.png
 
-%.png: %.csv
-	$(EXEC) --width 1049 --height 1049 generateImageFromCsv -i $< -o $@
+# %.png: %.csv
+# 	$(EXEC) --width 1024 --height 1024 generateImageFromCsv -i $< -o $@
+
+layout.png: testSourceDataset.csv sourceDataset_n100_gaussian.csv
+	$(EXEC) --width 1024 --height 1024  generateImageFromCsv -i testSourceDataset.csv -i sourceDataset_n100_gaussian.csv -o $@
 
 testSourceDataset.csv:
-	$(EXEC) --width 512 --height 512 generateTestDataset  > $@
+	$(EXEC) -n 100 --width 1024 --height 1024 generateTestDataset  > $@
 
 likelihood_ratio_n1000_affine:
 	$(EXEC) --noise-covariance 100 0 0 100 --transformation AFFINE -n 1000 likelihood > $@

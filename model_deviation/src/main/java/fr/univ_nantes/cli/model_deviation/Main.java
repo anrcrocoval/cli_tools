@@ -198,8 +198,8 @@ public class Main {
     }
 
     private Rectangle getRectangle(Point point) {
-        int width = 25;
-        int height = 25;
+        int width = 10;
+        int height = 10;
         return new Rectangle((int) point.get(0), (int) point.get(1), width, height);
     }
 
@@ -219,46 +219,58 @@ public class Main {
     }
 
     @Command
-    public void likelihood() {
+    public void likelihood(
+        @Option(
+            names = {"--transformation"},
+            description = "Input transformation file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./transformation.csv"
+        ) Path transformationFilePath,
+        @Option(
+            names = {"--source-dataset"},
+            description = "Input source dataset file.\nDefault : ${DEFAULT-VALUE}.",
+            defaultValue = "./source_dataset.csv"
+        ) Path sourceDatasetFilePath,
+        @Option(
+            names = { "-N" },
+            description = "Number of iterrations. Default : ${DEFAULT-VALUE}.",
+            defaultValue = "1000"
+        ) int N
+    ) {
         int[] range = new int[]{width, height};
-        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, 2).getArray();
-
-        AffineTransformation simpleRotationTransformation = (AffineTransformation) getRandomTransformation(transformationType);
-
-        FiducialSet current = testFiducialSetFactory.getRandomFromTransformation(
-            simpleRotationTransformation, n, range
-        );
-
-        testFiducialSetFactory.addGaussianNoise(current.getTargetDataset(), noiseCovariance);
-
-//        RegistrationParameter computeAnisotropicRigid = anisotripicRigidTransformationComputer.compute(current);
-        RegistrationParameter computeAffine = affineTransformationComputer.compute(current);
-        RegistrationParameter computeRigid = rigidTransformationComputer.compute(current);
-
         LikelihoodRatioTest likelihoodRatioTest = new LikelihoodRatioTest();
-//        System.out.println("Anisotropic rigid / Anisotropic affine");
-//        System.out.println(
-//            String.format(
-//                "pvalue: %f",
-//                likelihoodRatioTest.test(3, computeAnisotropicRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
-//            )
-//        );
-
-//        System.out.println("Isotropic rigid (schonnemann) / Anisotropic rigid");
-//        System.out.println(
-//            String.format(
-//                "pvalue: %f",
-//                likelihoodRatioTest.test(2, computeRigid.getLogLikelihood(), computeAnisotropicRigid.getLogLikelihood())
-//            )
-//        );
-
-        System.out.println("Isotropic rigid (schonnemann) / Anisotropic affine");
-        System.out.println(
-            String.format(
-                "pvalue: %f",
-                likelihoodRatioTest.test(5, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
-            )
+        CompletionService<Void> completionService = new ExecutorCompletionService<>(
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
         );
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, range.length).getArray();
+        AffineTransformation transformation = new AffineTransformation(csvToMatrixFileReader.read(transformationFilePath.toFile()));
+        Dataset sourceDataset = csvToDatasetFileReader.read(sourceDatasetFilePath.toFile());
+        Dataset targetDataset = transformation.apply(sourceDataset);
+        final FiducialSet fiducialSet = new FiducialSet(sourceDataset, targetDataset);
+
+        System.out.println("pvalue");
+
+        for (int k = 0; k < N; k++) {
+            completionService.submit(() -> {
+                FiducialSet clone = fiducialSet.clone();
+                testFiducialSetFactory.addGaussianNoise(clone.getTargetDataset(), noiseCovariance);
+                RegistrationParameter computeAffine = affineTransformationComputer.compute(clone);
+                RegistrationParameter computeRigid = rigidTransformationComputer.compute(clone);
+                System.out.println(
+                    String.format(
+                        Locale.US,
+                    "%f", likelihoodRatioTest.test(4, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+                    )
+                );
+                return null;
+            });
+        }
+        for (int k = 0; k < N; k++) {
+            try {
+                completionService.take().get();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private Dataset getUniformConfiguration(int n, int[] range) {
@@ -314,14 +326,11 @@ public class Main {
     public void generateTestDataset() {
         int[] range = new int[]{width, height};
         Dataset testSourceDataset = new Dataset(range.length, PointType.NOT_FIDUCIAL);
-        testSourceDataset.addPoint(new Point(new double[] { (double) width / 2, (double) height / 2 }));
-        testSourceDataset.addPoint(new Point(new double[] { 0, 0 }));
-        testSourceDataset.addPoint(new Point(new double[] { width, height }));
-        testSourceDataset.addPoint(new Point(new double[] { width, 0 }));
-        testSourceDataset.addPoint(new Point(new double[] { 0, height }));
-        testSourceDataset.addPoint(new Point(new double[] { width * 2, 0 }));
-        testSourceDataset.addPoint(new Point(new double[] { 0, height * 2 }));
-        testSourceDataset.addPoint(new Point(new double[] { width * 2, height * 2 }));
+        for(int i = 0; i < n; i++) {
+            testSourceDataset.addPoint(
+                testFiducialSetFactory.getRandomPoint(range)
+            );
+        }
         System.out.println(datasetToCsvFormatter.format(testSourceDataset));
     }
 
@@ -343,20 +352,36 @@ public class Main {
             names = {"-i", "--input"},
             description = "Input file.\nDefault : ${DEFAULT-VALUE}.",
             defaultValue = "./source.csv"
-        ) Path inputFilePath,
+        ) Path[] inputFilePath,
         @Option(
             names = {"-o", "--output"},
             description = "Output file.\nDefault : ${DEFAULT-VALUE}.",
             defaultValue = "./image.png"
         ) Path outputFilePath
     ) {
-        Dataset sourceDataset = csvToDatasetFileReader.read(inputFilePath.toFile());
         Image image = new Image(width, height);
-        for(int i = 0; i < sourceDataset.getN(); i++) {
-            image.fill(getRectangle(sourceDataset.getPoint(i)), Color.ORANGE);
+        for(int k = 0; k < inputFilePath.length; k++) {
+            Dataset sourceDataset = csvToDatasetFileReader.read(inputFilePath[k].toFile());
+            for(int i = 0; i < sourceDataset.getN(); i++) {
+                image.fill(getRectangle(sourceDataset.getPoint(i)), colors[k % 12]);
+            }
         }
         image.write(outputFilePath);
     }
+
+    private static Color[] colors = new Color[] {
+        Color.BLACK,
+        Color.WHITE,
+        Color.ORANGE,
+        Color.YELLOW,
+        Color.RED,
+        Color.PINK,
+        Color.GREEN,
+        Color.BLUE,
+        Color.CYAN,
+        Color.LIGHT_GRAY,
+        Color.MAGENTA
+    };
 
     @Command
     public void leaveOneOutSimulation(
@@ -484,37 +509,26 @@ public class Main {
         }
 
         List<Point> list = pointFactory.getFrom(sourceDataset);
-        System.out.println("i, model, method, n, %in, area.mean, area.sd, nearest");
+        System.out.println("i,model,method,n,%in,area.mean,area.sd,nearest");
         for(int i = 0; i < testSourceDataset.getN(); i++) {
             Point current = testSourceDataset.getPoint(i);
             double distance = current.getDistance(current.getNearest(list));
             System.out.println(String.format(
                 Locale.US,
-                "%d, \"%s\", \"analytic\", %d, %f, %f, %f, %f",
+                "%d,\"%s\",\"analytic\",%d,%f,%f,%f,%f",
                 i,
-                transformationModel,
+                transformationModel.toString().toLowerCase(),
                 fiducialSet.getN(),
                 ellipsesFromRegression[i].getRatio() * 100,
                 ellipsesFromRegression[i].getArea(),
                 ellipsesFromRegression[i].getAreaSd(),
                 distance
             ));
-//            System.out.println(String.format(
-//                Locale.US,
-//                "%d, \"%s\", \"loo_cov\", %d, %f, %f, %f, %f",
-//                i,
-//                transformationModel,
-//                fiducialSet.getN(),
-//                ellipsesFromLoo[i].getRatio() * 100,
-//                ellipsesFromLoo[i].getArea(),
-//                ellipsesFromLoo[i].getAreaSd(),
-//                distance
-//            ));
             System.out.println(String.format(
                 Locale.US,
-                "%d, \"%s\", \"leave_one_out\", %d, %f, %f, %f, %f",
+                "%d,\"%s\",\"leave_one_out\",%d,%f,%f,%f,%f",
                 i,
-                transformationModel,
+                transformationModel.toString().toLowerCase(),
                 fiducialSet.getN(),
                 disksFromLoo[i].getRatio() * 100,
                 disksFromLoo[i].getArea(),
