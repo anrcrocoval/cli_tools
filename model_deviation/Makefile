@@ -41,8 +41,8 @@ layout.png: testSourceDataset.csv sourceDataset_n100_gaussian.csv
 testSourceDataset.csv:
 	$(EXEC) -n 100 --width 1024 --height 1024 generateTestDataset  > $@
 
-likelihood_ratio_n1000_affine:
-	$(EXEC) --noise-covariance 100 0 0 100 --transformation AFFINE -n 1000 likelihood > $@
+likelihood_ratio_rigid: sourceDataset_n100_gaussian.csv RIGID.csv
+	$(EXEC) --noise-covariance 100 0 0 100 likelihood --source-dataset sourceDataset_n100_gaussian.csv --transformation RIGID.csv -N 1000 > $@
 
 clean:
 	rm -f -- result_* sourceDataset_* likelihood_ratio_* testSourceDataset.csv sourceDataset_* RIGID.csv AFFINE.csv SIMILARITY.csv

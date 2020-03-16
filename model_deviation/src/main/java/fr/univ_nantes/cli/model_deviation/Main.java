@@ -258,7 +258,7 @@ public class Main {
                 System.out.println(
                     String.format(
                         Locale.US,
-                    "%f", likelihoodRatioTest.test(4, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
+                    "%f", likelihoodRatioTest.test(5, computeRigid.getLogLikelihood(), computeAffine.getLogLikelihood())
                     )
                 );
                 return null;
