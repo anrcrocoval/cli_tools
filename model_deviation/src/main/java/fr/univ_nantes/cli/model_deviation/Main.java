@@ -491,9 +491,12 @@ public class Main {
             completionService.submit(() -> {
                 FiducialSet clone = fiducialSet.clone();
                 testFiducialSetFactory.addGaussianNoise(clone.getTargetDataset(), noiseCovariance);
+                testFiducialSetFactory.addGaussianNoise(clone.getSourceDataset(), noiseCovariance);
 
-                Dataset testClone = testTargetDataset.clone();
-                testFiducialSetFactory.addGaussianNoise(testClone, noiseCovariance);
+                Dataset targetTestClone = testTargetDataset.clone();
+                Dataset sourceTestClone = testSourceDataset.clone();
+                testFiducialSetFactory.addGaussianNoise(targetTestClone, noiseCovariance);
+                testFiducialSetFactory.addGaussianNoise(sourceTestClone, noiseCovariance);
 
                 Dataset registrationError = new Dataset(range.length, PointType.ERROR);
                 double[] registrationErrorDistance = new double[clone.getN()];
@@ -519,9 +522,9 @@ public class Main {
                 TransformationSchema transformationSchema = new TransformationSchema(clone, transformationModel, noiseModel, getSequenceSize(), getSequenceSize());
                 RegistrationParameter compute = registrationParameterFactory.getFrom(transformationSchema);
 
-                for(int i = 0; i < testClone.getN(); i++) {
-                    Point sourceTestPoint = testSourceDataset.getPoint(i);
-                    Point targetTestPoint = testClone.getPoint(i);
+                for(int i = 0; i < targetTestClone.getN(); i++) {
+                    Point sourceTestPoint = sourceTestClone.getPoint(i);
+                    Point targetTestPoint = targetTestClone.getPoint(i);
                     Point predictedTargetPoint = compute.getTransformation().apply(sourceTestPoint);
 
                     Shape ellipseLoo = shapeEllipseFactory.getFrom(
