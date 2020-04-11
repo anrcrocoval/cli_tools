@@ -219,6 +219,64 @@ public class Main {
     }
 
     @Command
+    public void bias(
+            @Option(
+                    names = {"--transformation"},
+                    description = "Input transformation file.\nDefault : ${DEFAULT-VALUE}.",
+                    defaultValue = "./transformation.csv"
+            ) Path transformationFilePath,
+            @Option(
+                    names = {"--source-dataset"},
+                    description = "Input source dataset file.\nDefault : ${DEFAULT-VALUE}.",
+                    defaultValue = "./source_dataset.csv"
+            ) Path sourceDatasetFilePath,
+            @Option(
+                    names = { "-N" },
+                    description = "Number of iterrations. Default : ${DEFAULT-VALUE}.",
+                    defaultValue = "1"
+            ) int N
+    ) {
+        int[] range = new int[]{width, height};
+        double[][] noiseCovariance = new Matrix(noiseCovarianceValues, range.length).getArray();
+        CompletionService<RegistrationParameter> completionService = new ExecutorCompletionService<>(
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+        );
+        AffineTransformation transformation = new AffineTransformation(csvToMatrixFileReader.read(transformationFilePath.toFile()));
+        Dataset sourceDataset = csvToDatasetFileReader.read(sourceDatasetFilePath.toFile());
+        Dataset targetDataset = transformation.apply(sourceDataset);
+        final FiducialSet fiducialSet = new FiducialSet(sourceDataset, targetDataset);
+
+        for (int k = 0; k < N; k++) {
+            completionService.submit(() -> {
+                FiducialSet clone = fiducialSet.clone();
+                testFiducialSetFactory.addGaussianNoise(clone.getTargetDataset(), noiseCovariance);
+                testFiducialSetFactory.addGaussianNoise(clone.getSourceDataset(), noiseCovariance);
+                TransformationSchema transformationSchema = new TransformationSchema(clone, transformationModel, noiseModel, getSequenceSize(), getSequenceSize());
+                RegistrationParameter compute = registrationParameterFactory.getFrom(transformationSchema);
+                return compute;
+            });
+        }
+        Matrix avg = Matrix.identity(range.length + 1, range.length + 1);
+        for (int k = 0; k < N; k++) {
+            try {
+                RegistrationParameter registrationParameter = completionService.take().get();
+                Matrix homogeneousMatrix = ((AffineTransformation) registrationParameter.getTransformation()).getHomogeneousMatrix();
+                avg.plusEquals(homogeneousMatrix);
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+        avg.timesEquals(1d / (double) N);
+        avg.print(1,5);
+        AffineTransformation biased = new AffineTransformation(avg);
+        Dataset apply = biased.apply(fiducialSet.getSourceDataset());
+        Matrix minus = fiducialSet.getTargetDataset().getMatrix().minus(apply.getMatrix());
+        minus.print(1,5);
+//        Dataset minusDataset = new Dataset(minus, PointType.ERROR);
+//        minusDataset.getBarycentre().getMatrix().print(1,5);
+    }
+
+    @Command
     public void likelihood(
         @Option(
             names = {"--transformation"},
@@ -433,9 +491,12 @@ public class Main {
             completionService.submit(() -> {
                 FiducialSet clone = fiducialSet.clone();
                 testFiducialSetFactory.addGaussianNoise(clone.getTargetDataset(), noiseCovariance);
+                testFiducialSetFactory.addGaussianNoise(clone.getSourceDataset(), noiseCovariance);
 
-                Dataset testClone = testTargetDataset.clone();
-                testFiducialSetFactory.addGaussianNoise(testClone, noiseCovariance);
+                Dataset targetTestClone = testTargetDataset.clone();
+                Dataset sourceTestClone = testSourceDataset.clone();
+                testFiducialSetFactory.addGaussianNoise(targetTestClone, noiseCovariance);
+                testFiducialSetFactory.addGaussianNoise(sourceTestClone, noiseCovariance);
 
                 Dataset registrationError = new Dataset(range.length, PointType.ERROR);
                 double[] registrationErrorDistance = new double[clone.getN()];
@@ -461,9 +522,9 @@ public class Main {
                 TransformationSchema transformationSchema = new TransformationSchema(clone, transformationModel, noiseModel, getSequenceSize(), getSequenceSize());
                 RegistrationParameter compute = registrationParameterFactory.getFrom(transformationSchema);
 
-                for(int i = 0; i < testClone.getN(); i++) {
-                    Point sourceTestPoint = testSourceDataset.getPoint(i);
-                    Point targetTestPoint = testClone.getPoint(i);
+                for(int i = 0; i < targetTestClone.getN(); i++) {
+                    Point sourceTestPoint = sourceTestClone.getPoint(i);
+                    Point targetTestPoint = targetTestClone.getPoint(i);
                     Point predictedTargetPoint = compute.getTransformation().apply(sourceTestPoint);
 
                     Shape ellipseLoo = shapeEllipseFactory.getFrom(

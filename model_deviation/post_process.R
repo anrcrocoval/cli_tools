@@ -333,6 +333,22 @@ plot.coverage.box = function(data) {
     return(p)
 }
 
+plot.coverage.box2 = function(data) {
+    font_size = 20
+    ymin = min(data$X.in)
+    p = ggplot(data = data, aes_string(x = "model", y = "X.in")) +
+    geom_boxplot() +
+    stat_boxplot(geom = 'errorbar') +
+    facet_grid(reformulate("transformation", "n"), labeller = label_both) +
+    coord_cartesian(ylim = c(ymin, 100)) +
+    geom_hline(yintercept = 95, linetype="dotted") +
+    scale_y_continuous(breaks = sort(unique(c(round(seq(ymin, 95, length.out = 4) / 5) * 5, 95)))) +
+    theme_bw() +
+    labs(x = "Model", y = "Coverage (%)") +
+    theme(axis.title = element_text(size = font_size), axis.text = element_text(size = font_size), strip.text = element_text(size = font_size), legend.title = element_text(size = font_size), legend.text = element_text(size = font_size))
+    return(p)
+}
+
 plot.area.box = function(data, log) {
     font_size = 20
     p = ggplot(data = data, aes_string(x = "model", y = "area.mean")) +
@@ -354,6 +370,22 @@ ggsave(
     ),
     file = "plot_rigid_affine.eps", dpi = 600, width = 250, height = 250, units = "mm"
 )
+
+table = inner_join(
+  data_both_both_gaussian %>%
+    filter(transformation == "affine" & model == "affine") %>%
+    group_by(n) %>%
+    summarize(min = min(X.in), mean = mean(X.in), sd = sd(X.in), max = max(X.in)),
+    data_both_both_gaussian %>%
+      filter(transformation == "affine" & model == "affine") %>%
+      group_by(n) %>%
+      group_modify(~ {
+        res = t.test(.x$X.in, conf.level=0.99, mu = 95);
+        return(data.frame(ci.inf = res$conf.int[1], ci.sup = res$conf.int[2], pvalue = res$p.value))
+      }),
+    by = "n")
+
+write.csv(as.data.frame(table),"table.csv", row.names = F)
 
 ggsave(
     grid_arrange_shared_legend2(

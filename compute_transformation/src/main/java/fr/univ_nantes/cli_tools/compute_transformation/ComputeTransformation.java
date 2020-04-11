@@ -6,17 +6,13 @@ import picocli.CommandLine.Command;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
 import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.Dataset;
 import plugins.fr.univ_nantes.ec_clem.registration.RegistrationParameter;
-import plugins.fr.univ_nantes.ec_clem.storage.CsvToDatasetFileReader;
-import plugins.fr.univ_nantes.ec_clem.storage.TransformationToCsvFormatter;
+import plugins.fr.univ_nantes.ec_clem.storage.dataset.CsvToDatasetFileReader;
+import plugins.fr.univ_nantes.ec_clem.storage.transformation.TransformationToCsvFormatter;
 import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationSchema;
 import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
 import javax.inject.Inject;
-import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Path;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 @Command(
     name = "compute_transformation",
