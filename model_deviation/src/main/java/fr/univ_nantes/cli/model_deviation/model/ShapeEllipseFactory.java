@@ -1,7 +1,7 @@
 package fr.univ_nantes.cli.model_deviation.model;
 
-import plugins.fr.univ_nantes.ec_clem.error.ellipse.Ellipse;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.ellipse.Ellipse;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.point.Point;
 import javax.inject.Inject;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;

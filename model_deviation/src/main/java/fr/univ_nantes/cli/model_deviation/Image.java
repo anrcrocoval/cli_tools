@@ -1,6 +1,6 @@
 package fr.univ_nantes.cli.model_deviation;
 
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.point.Point;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

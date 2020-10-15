@@ -17,34 +17,34 @@ import java.util.Locale;
 import java.util.concurrent.*;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import plugins.fr.univ_nantes.ec_clem.error.CovarianceMatrixComputer;
-import plugins.fr.univ_nantes.ec_clem.error.ellipse.ConfidenceEllipseFactory;
-import plugins.fr.univ_nantes.ec_clem.error.ellipse.CovarianceEstimatorFactory;
-import plugins.fr.univ_nantes.ec_clem.error.likelihood_ratio.LikelihoodRatioTest;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.Dataset;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.PointFactory;
-import plugins.fr.univ_nantes.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
-import plugins.fr.univ_nantes.ec_clem.fixtures.transformation.TestTransformationFactory;
-import plugins.fr.univ_nantes.ec_clem.registration.AffineRegistrationParameterComputer;
-import plugins.fr.univ_nantes.ec_clem.registration.RegistrationParameter;
-import plugins.fr.univ_nantes.ec_clem.registration.RigidRegistrationParameterComputer;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.CovarianceMatrixComputer;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.ellipse.ConfidenceEllipseFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.ellipse.CovarianceEstimatorFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.likelihood_ratio.LikelihoodRatioTest;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.FiducialSet;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.Dataset;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.point.Point;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.point.PointFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fixtures.fiducialset.TestFiducialSetFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fixtures.transformation.TestTransformationFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.registration.AffineRegistrationParameterComputer;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.registration.RegistrationParameter;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.registration.RigidRegistrationParameterComputer;
 //import plugins.fr.univ_nantes.ec_clem.registration.likelihood.dimension2.Rigid2DMaxLikelihoodComputer;
-import plugins.fr.univ_nantes.ec_clem.roi.PointType;
-import plugins.fr.univ_nantes.ec_clem.sequence.DimensionSize;
-import plugins.fr.univ_nantes.ec_clem.sequence.SequenceSize;
-import plugins.fr.univ_nantes.ec_clem.storage.*;
-import plugins.fr.univ_nantes.ec_clem.storage.dataset.CsvToDatasetFileReader;
-import plugins.fr.univ_nantes.ec_clem.storage.dataset.DatasetToCsvFormatter;
-import plugins.fr.univ_nantes.ec_clem.storage.transformation.CsvToMatrixFileReader;
-import plugins.fr.univ_nantes.ec_clem.storage.transformation.TransformationToCsvFormatter;
-import plugins.fr.univ_nantes.ec_clem.transformation.AffineTransformation;
-import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
-import plugins.fr.univ_nantes.ec_clem.transformation.Transformation;
-import plugins.fr.univ_nantes.ec_clem.transformation.schema.NoiseModel;
-import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationSchema;
-import plugins.fr.univ_nantes.ec_clem.transformation.schema.TransformationType;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.roi.PointType;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.sequence.DimensionSize;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.sequence.SequenceSize;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.storage.*;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.storage.dataset.CsvToDatasetFileReader;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.storage.dataset.DatasetToCsvFormatter;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.storage.transformation.csv.CsvToMatrixFileReader;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.storage.transformation.csv.TransformationToCsvFormatter;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.AffineTransformation;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.RegistrationParameterFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.Transformation;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.schema.NoiseModel;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.schema.TransformationSchema;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.schema.TransformationType;
 
 @Command(
     name = "model_deviation",
@@ -498,7 +498,7 @@ public class Main {
                 testFiducialSetFactory.addGaussianNoise(targetTestClone, noiseCovariance);
                 testFiducialSetFactory.addGaussianNoise(sourceTestClone, noiseCovariance);
 
-                Dataset registrationError = new Dataset(range.length, PointType.ERROR);
+                Dataset registrationError = new Dataset(range.length, PointType.PREDICTED_ERROR);
                 double[] registrationErrorDistance = new double[clone.getN()];
 
                 for(int i = 0; i < clone.getN(); i++) {

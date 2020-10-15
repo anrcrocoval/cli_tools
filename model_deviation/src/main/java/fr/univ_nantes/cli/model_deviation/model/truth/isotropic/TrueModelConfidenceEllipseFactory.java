@@ -3,10 +3,10 @@ package fr.univ_nantes.cli.model_deviation.model.truth.isotropic;
 import Jama.EigenvalueDecomposition;
 import Jama.Matrix;
 import fr.univ_nantes.cli.model_deviation.model.truth.ChiSquaredEstimator;
-import plugins.fr.univ_nantes.ec_clem.error.ellipse.Ellipse;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.FiducialSet;
-import plugins.fr.univ_nantes.ec_clem.fiducialset.dataset.point.Point;
-import plugins.fr.univ_nantes.ec_clem.transformation.RegistrationParameterFactory;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.error.ellipse.Ellipse;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.FiducialSet;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.fiducialset.dataset.point.Point;
+import plugins.fr.univ_nantes.ec_clem.ec_clem.transformation.RegistrationParameterFactory;
 import javax.inject.Inject;
 
 public class TrueModelConfidenceEllipseFactory {
