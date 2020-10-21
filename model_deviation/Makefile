@@ -1,6 +1,6 @@
 EXEC = java -jar target/model_deviation-1.0-SNAPSHOT.jar
-LIST_OF_N = 10 25 100
-LIST_OF_TRANSFORMATIONS = RIGID AFFINE
+LIST_OF_N = 10
+LIST_OF_TRANSFORMATIONS = AFFINE
 # LIST_OF_LAYOUTS = uniform gaussian
 LIST_OF_LAYOUTS = gaussian
 
@@ -25,7 +25,7 @@ endef
 
 define RESULT_RULE
 result_model_$(1)_transfo_$(2)_n$(3)_layout_$(4).csv: $(2).csv sourceDataset_n$(3)_$(4).csv testSourceDataset.csv
-	$(EXEC) --noise-covariance 1 0 0 1 --transformation-model $(1) leaveOneOutSimulation -N 10000 --transformation $(2).csv --source-dataset sourceDataset_n$(3)_$(4).csv --test-source-dataset testSourceDataset.csv > $$@
+	$(EXEC) -a 0.5 --noise-covariance 1 0 0 1 --transformation-model $(1) leaveOneOutSimulation -N 3 --transformation $(2).csv --source-dataset sourceDataset_n$(3)_$(4).csv --test-source-dataset testSourceDataset.csv > $$@
 endef
 
 RESULT_FILES = $(foreach model,$(LIST_OF_TRANSFORMATIONS),$(foreach transformation,$(LIST_OF_TRANSFORMATIONS),$(foreach n,$(LIST_OF_N),$(foreach layout,$(LIST_OF_LAYOUTS),$(call RESULT_NAME,$(model),$(transformation),$(n),$(layout))))))
