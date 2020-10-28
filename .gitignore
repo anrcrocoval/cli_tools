@@ -2,3 +2,10 @@
 .iml
 target/
 .log
+*.classpath
+*.project
+*.csv
+*.prefs
+*.png
+*.eps
+
