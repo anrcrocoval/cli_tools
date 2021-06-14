@@ -13,7 +13,7 @@ library(gridExtra)
 # }
 
 plot.coverage = function(data, fill_by, facet_by) {
-    font_size = 20
+    font_size = 35
     ymin = min(min(data$X.in), 50)
     p = ggplot(data = data, aes_string(x = "nearest", y = "X.in", color = fill_by)) +
     geom_point() +
@@ -30,7 +30,7 @@ plot.coverage = function(data, fill_by, facet_by) {
 }
 
 plot.coverage2 = function(data, fill_by) {
-    font_size = 20
+    font_size = 35
     ymin = min(min(data$X.in), 50)
     p = ggplot(data = data, aes_string(x = "nearest", y = "X.in", color = fill_by)) +
     geom_point() +
@@ -47,7 +47,7 @@ plot.coverage2 = function(data, fill_by) {
 }
 
 plot.area = function(data, fill_by, facet_by, log) {
-    font_size = 20
+    font_size = 35
     ymin = min(data$area.mean)
     ymax = max(data$area.mean)
     p = ggplot(data = data, aes_string(x = "nearest", y = "area.mean", color = fill_by)) +
@@ -65,7 +65,7 @@ plot.area = function(data, fill_by, facet_by, log) {
 
 
 plot.area2 = function(data, fill_by, log) {
-    font_size = 20
+    font_size = 35
     ymin = min(data$area.mean)
     ymax = max(data$area.mean)
     p = ggplot(data = data, aes_string(x = "nearest", y = "area.mean", color = fill_by)) +
@@ -86,7 +86,7 @@ plot.area2 = function(data, fill_by, log) {
 }
 
 plot.nearest = function(data) {
-    font_size = 20
+    font_size = 35
     ymin = min(data$nearest)
     ymax = max(data$nearest)
     p = ggplot(data = data, aes(x = i, y = nearest)) +
@@ -318,7 +318,7 @@ data_both_both_gaussian$n = as.factor(data_both_both_gaussian$n)
 data_both_both_gaussian = data_both_both_gaussian %>% filter(method == "analytic")
 
 plot.coverage.box = function(data) {
-    font_size = 20
+    font_size = 35
     ymin = min(min(data$X.in), 50)
     p = ggplot(data = data, aes_string(x = "model", y = "X.in")) +
     geom_boxplot() +
@@ -334,7 +334,7 @@ plot.coverage.box = function(data) {
 }
 
 plot.coverage.box2 = function(data) {
-    font_size = 20
+    font_size = 35
     ymin = min(data$X.in)
     p = ggplot(data = data, aes_string(x = "model", y = "X.in")) +
     geom_boxplot() +
@@ -350,7 +350,7 @@ plot.coverage.box2 = function(data) {
 }
 
 plot.area.box = function(data, log) {
-    font_size = 20
+    font_size = 35
     p = ggplot(data = data, aes_string(x = "model", y = "area.mean")) +
     geom_boxplot() +
     stat_boxplot(geom = 'errorbar') +
